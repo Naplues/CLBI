@@ -1,14 +1,14 @@
 # -*- coding:utf-8 -*-
 from warnings import simplefilter
 
-import os
-import re
 import pickle
 import numpy as np
 
 from pprint import pprint
+from helper import *
 from sklearn import metrics
 from evaluation import evaluation
+
 from lime.lime_text import LimeTextExplainer
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
@@ -22,71 +22,9 @@ simplefilter(action='ignore', category=FutureWarning)
 root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 file_level_path = root_path + '/Dataset/File-level/'
 line_level_path = root_path + '/Dataset/Line-level/'
-result_path = root_path + '/Result/'
+result_path = root_path + '/Result/Simple/'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
-
-
-# 读取项目列表,去掉后缀
-def get_project_list(folder):
-    return [file.replace(file_level_path_suffix, '') for file in os.listdir(folder)]
-
-
-# 读取文件级别的数据集信息
-def read_file_level_dataset(proj):
-    path = file_level_path + proj + file_level_path_suffix
-    with open(path, 'r', encoding='utf-8', errors='ignore')as file:
-        lines = file.readlines()
-        # 文件索引列表, 每个文件名不一样才语句才没有错误 TODO
-        src_file_indices = [lines.index(line) for line in lines if re.search(r'.java,(true|false),', line)]
-        # 源文件路径,需要时返回 OK
-        src_files = [lines[index].split(',')[0] for index in src_file_indices]
-        # 缺陷标记
-        string_labels = [lines[index].split(',')[1] for index in src_file_indices]
-        numeric_labels = np.array([1 if label == 'true' else 0 for label in string_labels])
-
-        # 行级别的文本语料库
-        texts_lines = []
-        for i in range(len(src_file_indices) - 1):
-            # 从当前文件名所在行开始到下一个文件名所在行结束
-            code_lines = lines[src_file_indices[i]:src_file_indices[i + 1]]
-            # 去掉首行中的文件名和标签,以及首行中的引号"
-            code_lines[0] = code_lines[0].split(',')[-1][1:]
-            # 删除列表中最后的"
-            del code_lines[-1]
-            texts_lines.append(code_lines)
-
-        # 从当前文件名所在行开始到结束
-        code_lines = lines[src_file_indices[-1]:]
-        # 去掉首行中的文件名和标签, 以及首行中的引号
-        code_lines[0] = code_lines[0].split(',')[-1][1:]
-        # 删除列表中最后的"
-        del code_lines[-1]
-        texts_lines.append(code_lines)
-
-        # 多行合并后的文本语料库
-        texts = [' '.join(line) for line in texts_lines]
-
-        return texts, texts_lines, numeric_labels, src_files
-
-
-# 读取代码行级别的数据集信息
-def read_line_level_dataset(proj):
-    path = line_level_path + proj + line_level_path_suffix
-    with open(path, 'r', encoding='utf-8', errors='ignore')as file:
-        lines = file.readlines()
-        file_buggy_lines = {}
-        for line in lines:
-            # 跳过首行
-            if line == 'File,Line_number,SRC\n':
-                continue
-            temp = line.split(',')
-            if temp[0] not in file_buggy_lines:
-                file_buggy_lines[temp[0]] = [int(temp[1])]
-            else:
-                file_buggy_lines[temp[0]].append(int(temp[1]))
-
-    return file_buggy_lines
 
 
 # 版本内预测实验
@@ -145,7 +83,7 @@ def within_release_prediction(proj, num_iter=10, num_folds=10):
 
             # 5. 解释代码行级别的缺陷概率
             out_file = result_path + 'with_predictions_' + proj + str(it) + '_line_risk_ranks.pk'
-            line_dp(proj, vector, classifier, test_text, test_text_lines, test_filename, test_predictions, out_file)
+            simple(proj, vector, test_text, test_text_lines, test_filename, test_predictions, out_file)
 
     # 打印平均结果
     print('\nAvg P:\t%.3f' % np.average(precision_list))
@@ -205,7 +143,7 @@ def cross_release_prediction(proj, releases_list):
 
         # 5. 解释代码行级别的缺陷概率
         out_file = result_path + 'cr_line_level_ranks_' + test_proj + '.pk'
-        r = line_dp(test_proj, vector, clf, test_text, test_text_lines, test_filename, test_predictions, out_file)
+        r = simple(test_proj, vector, test_text, test_text_lines, test_filename, test_predictions, out_file)
         line_level_indicators += r
 
     # 输出行级别的结果
@@ -217,19 +155,22 @@ def cross_release_prediction(proj, releases_list):
     print('Avg R:\t%.3f' % np.average(recall_list))
     print('Avg F1:\t%.3f' % np.average(f1_list))
     print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
-    with open(result_path + 'cross_predictions_' + releases_list[i + 1] + '.pk', 'wb') as file:
+    with open(result_path + 'cr_' + releases_list[i + 1] + '.pk', 'wb') as file:
         pickle.dump([test_list, pred_list, precision_list, recall_list, f1_list, mcc_list], file)
 
 
+def call_dept(statement):
+    statement = statement.strip('\"')
+
+    return 1
+
+
 # 进行代码行级别的排序
-def line_dp(proj, vector, classifier, test_text, test_text_lines, test_filename, test_predictions, out_file):
+def simple(proj, vector, test_text, test_text_lines, test_filename, test_predictions, out_file):
     # 5. 解释代码行级别的缺陷概率
     # 预测值为有缺陷的文件的索引
     defect_prone_file_indices = np.array([index[0] for index in np.argwhere(test_predictions == 1)])
-    # 制作管道
-    c = make_pipeline(vector, classifier)
-    # 定义解释器
-    explainer = LimeTextExplainer(class_names=['defect', 'non-defect'])
+
     # 文本分词器
     tokenizer = vector.build_tokenizer()
 
@@ -248,10 +189,8 @@ def line_dp(proj, vector, classifier, test_text, test_text_lines, test_filename,
             # 评估,oracle, predict, cut_off
             return proj + ',' + evaluation(oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
 
-    i = 0
     # 待解释的文件
     for target_file_index in defect_prone_file_indices:
-        i += 1
         # 目标文本
         target_text = test_text[target_file_index]
         # 目标文件名
@@ -261,27 +200,20 @@ def line_dp(proj, vector, classifier, test_text, test_text_lines, test_filename,
         # cut-off: 20% effort 的切分点,用于将排序结果转换为分类结果
         effort_cut_off_dict[target_file_name] = int(.2 * len(target_file_lines))
 
-        # 对分类结果进行解释
-        exp = explainer.explain_instance(target_text, c.predict_proba, num_features=50)
-        # 取出risk tokens, 取前20个, 可能不足20个 TODO
-        positive_tokens = [i[0] for i in exp.as_list() if i[1] > 0][:20]
-
         # 统计 risk tokens 的命中次数, 初始为0
+        # ############################ 重点,怎么给每行赋一个缺陷值 ################################
         hit_count = np.array([0] * len(target_file_lines))
-        # 统计每行代码中出现risk tokens的个数
         for index in range(len(target_file_lines)):
-
             tokens_in_line = tokenizer(target_file_lines[index])
-            # 检测每个risk token在代码中的出现位置
-            for risk_token in positive_tokens:
-                if risk_token in tokens_in_line:
-                    hit_count[index] += 1
+            f1 = len(tokens_in_line)
+            f2 = call_dept(target_file_lines[index])
+            f3 = 1. / (index + 1)
+            hit_count[index] += f3
 
-        # 根据命中次数对代码行进行降序排序, 按照排序后数值从大到小的顺序显示代码行在原列表中的索引, cut_off 为切分点
+            # 根据命中次数对代码行进行降序排序, 按照排序后数值从大到小的顺序显示代码行在原列表中的索引, cut_off 为切分点
         # line + 1,因为下标是从0开始计数而不是从1开始
         ranked_list_dict[target_file_name] = [line + 1 for line in np.argsort(-hit_count).tolist()]
         defect_cut_off_dict[target_file_name] = len([hit for hit in hit_count if hit > 0])
-        print('%d/%d files predicted finish!' % (i, len(defect_prone_file_indices)))
 
     with open(out_file, 'wb') as file:
         pickle.dump([oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict], file)

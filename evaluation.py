@@ -3,14 +3,23 @@ import math
 import numpy as np
 
 
-# ################################## Evaluation #######################################
 # 评估行级别的分类效果
 def evaluation(oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict):
-    # predict_as_bug_line_dict: 存储每个文件中被预测为有bug的代码行号 predict_as_bug_line_dict[filename] = [line numbers]
+    """
+    评估行级别的分类及排序效果
+    以下四个字典类型的变量均以文件名作为 key
+    :param oracle_line_dict: 真实的 bug行列表字典
+    :param ranked_list_dict: 预测的 bug行序列字典
+    :param defect_cut_off_dict: 二分类 切分点字典
+    :param effort_cut_off_dict: 工作量 切分点字典
+    :return:
+    """
+    # 预测为有bug的行号
     predict_as_bug_line_dict = {}
+    # 预测为无bug的行号
     predict_as_clean_line_dict = {}
 
-    # ################## 工作量感知的指标 Recall, FAR, d2h, MCC ########################
+    # ################## 按照二分类进行切分 工作量感知的指标  Recall, FAR, d2h, MCC ########################
     for target_file_name, ranked_list in ranked_list_dict.items():
         cut_off = defect_cut_off_dict[target_file_name]
         predict_as_bug_line_dict[target_file_name] = ranked_list[:cut_off]
@@ -49,7 +58,7 @@ def evaluation(oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_c
     d2h = math.sqrt(math.pow(1 - recall, 2) + math.pow(far, 2)) / math.sqrt(2)
     mcc = (tp * tn - fp * fn) / math.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
 
-    # ################## 工作量感知的排序指标 Recall@20% ########################
+    # ################## 按照20%工作量进行切分 工作量感知的排序指标 Recall@20% ########################
     for target_file_name, ranked_list in ranked_list_dict.items():
         cut_off = effort_cut_off_dict[target_file_name]
         predict_as_bug_line_dict[target_file_name] = ranked_list[:cut_off]
