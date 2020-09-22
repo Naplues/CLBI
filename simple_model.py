@@ -81,12 +81,9 @@ def within_release_prediction(proj, num_iter=10, num_folds=10):
 
             # 5. 解释代码行级别的缺陷概率
             out_file = result_path + 'with_predictions_' + proj + str(it) + '_line_risk_ranks.pk'
-            simple(proj, vector, test_text, test_text_lines, test_filename, test_predictions, out_file)
+            simple(proj, vector, test_text_lines, test_filename, test_predictions, out_file)
 
     # 打印平均结果
-    print('\nAvg P:\t%.3f' % np.average(precision_list))
-    print('Avg R:\t%.3f' % np.average(recall_list))
-    print('Avg F1:\t%.3f' % np.average(f1_list))
     print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
     with open(result_path + 'within_predictions_' + proj + '.pk', 'wb') as file:
         pickle.dump([test_list, prediction_list, precision_list, recall_list, f1_list, mcc_list], file)
@@ -142,7 +139,7 @@ def cross_release_prediction(proj, releases_list):
 
         # 5. 解释代码行级别的缺陷概率
         out_file = result_path + 'cr_line_level_ranks_' + test_proj + '.pk'
-        r = simple(test_proj, vector, test_text, test_text_lines, test_filename, test_predictions, out_file)
+        r = simple(test_proj, vector, test_text_lines, test_filename, test_predictions, out_file)
         line_level_indicators += r
 
     # 输出行级别的结果
@@ -150,9 +147,6 @@ def cross_release_prediction(proj, releases_list):
         file.write(line_level_indicators)
 
     # 打印文件级别的平均结果
-    print('\nAvg P:\t%.3f' % np.average(precision_list))
-    print('Avg R:\t%.3f' % np.average(recall_list))
-    print('Avg F1:\t%.3f' % np.average(f1_list))
     print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
     with open(result_path + 'cr_file_level_evaluation_' + proj + '.pk', 'wb') as file:
         pickle.dump([test_list, pred_list, precision_list, recall_list, f1_list, mcc_list], file)
@@ -182,12 +176,11 @@ def call_number(statement):
 
 
 # 进行代码行级别的排序
-def simple(proj, vector, test_text, test_text_lines, test_filename, test_predictions, out_file):
+def simple(proj, vector, test_text_lines, test_filename, test_predictions, out_file):
     """
     Line-level ranking
     :param proj:
     :param vector:
-    :param test_text:
     :param test_text_lines:
     :param test_filename:
     :param test_predictions:
@@ -218,8 +211,6 @@ def simple(proj, vector, test_text, test_text_lines, test_filename, test_predict
 
     # 待解释的文件
     for target_file_index in defect_prone_file_indices:
-        # 目标文本
-        target_text = test_text[target_file_index]
         # 目标文件名
         target_file_name = test_filename[target_file_index]
         # 目标文件的代码行列表

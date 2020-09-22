@@ -32,7 +32,7 @@ def within_release_prediction(proj, num_iter=10, num_folds=10):
     """
     版本内预测
     :param proj: 项目版本名
-     :param num_iter: 重复次数 默认10
+     :param num_iter: 重复次数 默认 10
     :param num_folds:折数 默认 10
     :return:
     """
@@ -83,12 +83,9 @@ def within_release_prediction(proj, num_iter=10, num_folds=10):
 
             # 5. 解释代码行级别的缺陷概率
             out_file = result_path + 'with_predictions_' + proj + str(it) + '_line_risk_ranks.pk'
-            line_dp(proj, vector, classifier, test_text, test_text_lines, test_filename, test_predictions, out_file)
+            line_dp(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file)
 
     # 打印平均结果
-    print('\nAvg P:\t%.3f' % np.average(precision_list))
-    print('Avg R:\t%.3f' % np.average(recall_list))
-    print('Avg F1:\t%.3f' % np.average(f1_list))
     print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
     with open(result_path + 'within_predictions_' + proj + '.pk', 'wb') as file:
         pickle.dump([test_list, prediction_list, precision_list, recall_list, f1_list, mcc_list], file)
@@ -114,7 +111,7 @@ def cross_release_prediction(proj, releases_list):
     mcc_list = []
 
     # Line-level指标
-    line_level_indicators = 'Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
+    line_level_performance = 'Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
     print("Training set\t ===> \tTest set.")
     for i in range(len(releases_list) - 1):
         train_proj, test_proj = releases_list[i], releases_list[i + 1]
@@ -142,26 +139,23 @@ def cross_release_prediction(proj, releases_list):
         f1_list.append(metrics.f1_score(test_label, test_predictions))
         mcc_list.append(metrics.matthews_corrcoef(test_label, test_predictions))
 
-        # 5. 解释代码行级别的缺陷概率
+        # 5. 预测代码行级别的缺陷概率
         out_file = result_path + 'cr_line_level_ranks_' + test_proj + '.pk'
-        r = line_dp(test_proj, vector, clf, test_text, test_text_lines, test_filename, test_predictions, out_file)
-        line_level_indicators += r
+        r = line_dp(test_proj, vector, clf, test_text_lines, test_filename, test_predictions, out_file)
+        line_level_performance += r
 
     # 输出行级别的结果
     with open(result_path + 'cr_line_level_evaluation_' + proj + '.csv', 'w') as file:
-        file.write(line_level_indicators)
+        file.write(line_level_performance)
 
     # 打印文件级别的平均结果
-    print('\nAvg P:\t%.3f' % np.average(precision_list))
-    print('Avg R:\t%.3f' % np.average(recall_list))
-    print('Avg F1:\t%.3f' % np.average(f1_list))
-    print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
+    print('File level Avg MCC:\t%.3f\n' % np.average(mcc_list))
     with open(result_path + 'cr_file_level_evaluation_' + proj + '.pk', 'wb') as file:
         pickle.dump([test_list, pred_list, precision_list, recall_list, f1_list, mcc_list], file)
 
 
 # 进行代码行级别的排序
-def line_dp(proj, vector, classifier, test_text, test_text_lines, test_filename, test_predictions, out_file):
+def line_dp(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file):
     # 5. 解释代码行级别的缺陷概率
     # 预测值为有缺陷的文件的索引
     defect_prone_file_indices = np.array([index[0] for index in np.argwhere(test_predictions == 1)])
@@ -191,8 +185,6 @@ def line_dp(proj, vector, classifier, test_text, test_text_lines, test_filename,
     # 待解释的文件
     for target_file_index in defect_prone_file_indices:
         i += 1
-        # 目标文本
-        target_text = test_text[target_file_index]
         # 目标文件名
         target_file_name = test_filename[target_file_index]
         # 目标文件的代码行列表
@@ -201,7 +193,7 @@ def line_dp(proj, vector, classifier, test_text, test_text_lines, test_filename,
         effort_cut_off_dict[target_file_name] = int(.2 * len(target_file_lines))
 
         # 对分类结果进行解释
-        exp = explainer.explain_instance(target_text, c.predict_proba, num_features=50)
+        exp = explainer.explain_instance(' '.join(target_file_lines), c.predict_proba, num_features=50)
         # 取出risk tokens, 取前20个, 可能不足20个 TODO
         positive_tokens = [i[0] for i in exp.as_list() if i[1] > 0][:20]
 
