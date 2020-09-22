@@ -89,8 +89,14 @@ def read_line_level_dataset(proj):
     return file_buggy_lines_dict
 
 
-# 将结果组合在一个文件中
+# 将行级别的评估结果组合在一个文件中
 def combine_results(proj_list, path):
+    """
+    将行级别的评估结果组合在一个文件中
+    :param proj_list:
+    :param path:
+    :return:
+    """
     text = 'Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
     for proj in proj_list:
         with open(path + 'cr_line_level_evaluation_' + proj + '.csv', 'r') as file:
@@ -102,6 +108,10 @@ def combine_results(proj_list, path):
     print('Finish!')
 
 
+def output_result():
+    pass
+
+
 if __name__ == '__main__':
     projects = ['activemq', 'camel', 'derby', 'groovy', 'hbase', 'hive', 'jruby', 'lucene', 'wicket']
-    combine_results(projects, result_path + 'Simple_f2/')
+    combine_results(projects, result_path + 'Simple_f5/')

@@ -9,6 +9,7 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, ef
     """
     评估行级别的分类及排序效果
     以下四个字典类型的变量均以文件名作为 key
+    :param proj: 项目版本名
     :param oracle_line_dict: 真实的 bug行列表字典
     :param ranked_list_dict: 预测的 bug行序列字典
     :param defect_cut_off_dict: 二分类 切分点字典
@@ -30,9 +31,8 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, ef
     # 计算评估指标
     # 统计出预测为有bug的实例 TP, FP
     for filename, predicted_line_numbers in predict_as_bug_line_dict.items():
-        # 这句应该不会执行, 因为素有的filename应该都在 oracle_line_dict 中
+        # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中
         if filename not in oracle_line_dict:
-            # print('test %s' % filename)
             continue
         oracle_line_numbers = oracle_line_dict[filename]
         for line_number in predicted_line_numbers:
@@ -43,9 +43,8 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, ef
 
     # 统计出预测为无bug的实例 TN, FN
     for filename, predicted_line_numbers in predict_as_clean_line_dict.items():
-        # 这句应该不会执行, 因为素有的filename应该都在 oracle_line_dict 中
+        # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中
         if filename not in oracle_line_dict:
-            # print('test %s' % filename)
             continue
         oracle_line_numbers = oracle_line_dict[filename]
         for line_number in predicted_line_numbers:
@@ -70,9 +69,8 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, ef
     # 计算评估指标
     # 统计出预测为有bug的实例 TP, FP
     for filename, predicted_line_numbers in predict_as_bug_line_dict.items():
-        # 这句应该不会执行, 因为素有的filename应该都在 oracle_line_dict 中
+        # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中
         if filename not in oracle_line_dict:
-            # print('test %s' % filename)
             continue
         oracle_line_numbers = oracle_line_dict[filename]
         for line_number in predicted_line_numbers:
@@ -83,9 +81,8 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, ef
 
     # 统计出预测为无bug的实例 TN, FN
     for filename, predicted_line_numbers in predict_as_clean_line_dict.items():
-        # 这句应该不会执行, 因为素有的filename应该都在 oracle_line_dict 中
+        # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中
         if filename not in oracle_line_dict:
-            # print('test %s' % filename)
             continue
         oracle_line_numbers = oracle_line_dict[filename]
         for line_number in predicted_line_numbers:
@@ -99,9 +96,8 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, ef
     # 统计IFA
     ifa_list = []
     for filename, predicted_line_numbers in ranked_list_dict.items():
-        # 这句应该不会执行, 因为素有的filename应该都在 oracle_line_dict 中
+        # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中
         if filename not in oracle_line_dict:
-            # print('test %s' % filename)
             continue
         ifa = 0
         oracle_line_numbers = oracle_line_dict[filename]
@@ -113,8 +109,38 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, ef
         ifa_list.append(ifa)
     ifa_mean = int(np.mean(ifa_list))
     ifa_median = int(np.median(ifa_list))
+    ifa = ','.join([str(i) for i in ifa_list])
 
-    print('recall\tFAR\td2h\tMCC\tr_20%\tIFA_avg\tIFA_med')
-    print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\n' % (recall, far, d2h, mcc, recall_20, ifa_mean, ifa_median))
+    # ################################# 计算排序指标 MRR MAP ###########################################
+    _mrr, _map, n = .0, .0, .0
+    for filename, predicted_line_numbers in ranked_list_dict.items():
+        # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中
+        if filename not in oracle_line_dict:
+            continue
+        rr, ap, i, k = .0, .0, 0, len(oracle_line_numbers)
+        n += 1
+        oracle_line_numbers = oracle_line_dict[filename]
+        for index in range(len(predicted_line_numbers)):
+            line_number = predicted_line_numbers[index]
+            if line_number in oracle_line_numbers:
+                rr = 1. / (index + 1)
+                break
+        _mrr += rr
+        for index in range(len(predicted_line_numbers)):
+            line_number = predicted_line_numbers[index]
+            if line_number in oracle_line_numbers:
+                i += 1.
+                ap += i / (index + 1)
+                if i == k:
+                    break
+        _map += ap / k
 
-    return '%s,%f,%f,%f,%f,%f,%d,%d\n' % (proj, recall, far, d2h, mcc, recall_20, ifa_mean, ifa_median)
+    _mrr /= n
+    _map /= n
+
+    print('recall\tFAR\td2h\tMCC\tr_20%\tIFA_avg\tIFA_med\tMRR\tMAP')
+    print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\t%.3f\t%.3f\n' %
+          (recall, far, d2h, mcc, recall_20, ifa_mean, ifa_median, _mrr, _map))
+
+    return '%s,%f,%f,%f,%f,%f,%d,%d,%f,%f,%s\n' % (
+        proj, recall, far, d2h, mcc, recall_20, ifa_mean, ifa_median, _mrr, _map, ifa)

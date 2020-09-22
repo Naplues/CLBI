@@ -9,8 +9,6 @@ from helper import *
 from sklearn import metrics
 from evaluation import evaluation
 
-from lime.lime_text import LimeTextExplainer
-from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_extraction.text import CountVectorizer
@@ -22,7 +20,7 @@ simplefilter(action='ignore', category=FutureWarning)
 root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 file_level_path = root_path + '/Dataset/File-level/'
 line_level_path = root_path + '/Dataset/Line-level/'
-result_path = root_path + '/Result/Simple/'
+result_path = root_path + '/Result/Simple_f5/'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
 
@@ -243,8 +241,10 @@ def simple(proj, vector, test_text, test_text_lines, test_filename, test_predict
             f3 = call_depth(target_file_lines[index])
             # f4 按照方法调用次数进行排序
             f4 = call_number(target_file_lines[index])
+            # f5 考虑调用深度和单词数
+            f5 = f2 * f3
 
-            hit_count[index] += f2
+            hit_count[index] += f5
         # ############################ 重点,怎么给每行赋一个缺陷值 ################################
 
         # 根据命中次数对代码行进行降序排序, 按照排序后数值从大到小的顺序显示代码行在原列表中的索引, cut_off 为切分点
