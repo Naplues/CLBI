@@ -22,7 +22,7 @@ simplefilter(action='ignore', category=FutureWarning)
 root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 file_level_path = root_path + '/Dataset/File-level/'
 line_level_path = root_path + '/Dataset/Line-level/'
-result_path = root_path + '/Result/'
+result_path = root_path + '/Result/LineDP/'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
 
@@ -102,7 +102,8 @@ def cross_release_prediction(proj, releases_list):
     :param releases_list:
     :return:
     """
-    print('Cross-release prediction for ' + proj)
+    log = '=' * 10 + ' Cross-release prediction for ' + proj + ' ' + '=' * 60
+    print(log[:60])
     # 声明储存预测结果变量
     test_list = []
     pred_list = []
@@ -114,7 +115,7 @@ def cross_release_prediction(proj, releases_list):
 
     # Line-level指标
     line_level_indicators = 'Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
-    print("Training set,\tTest set.")
+    print("Training set\t ===> \tTest set.")
     for i in range(len(releases_list) - 1):
         train_proj, test_proj = releases_list[i], releases_list[i + 1]
         print("%s\t ===> \t%s" % (train_proj, test_proj))
@@ -147,7 +148,7 @@ def cross_release_prediction(proj, releases_list):
         line_level_indicators += r
 
     # 输出行级别的结果
-    with open(result_path + 'cr_' + proj + '.csv', 'w') as file:
+    with open(result_path + 'cr_line_level_evaluation_' + proj + '.csv', 'w') as file:
         file.write(line_level_indicators)
 
     # 打印文件级别的平均结果
@@ -155,7 +156,7 @@ def cross_release_prediction(proj, releases_list):
     print('Avg R:\t%.3f' % np.average(recall_list))
     print('Avg F1:\t%.3f' % np.average(f1_list))
     print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
-    with open(result_path + 'cross_predictions_' + releases_list[i + 1] + '.pk', 'wb') as file:
+    with open(result_path + 'cr_file_level_evaluation_' + proj + '.pk', 'wb') as file:
         pickle.dump([test_list, pred_list, precision_list, recall_list, f1_list, mcc_list], file)
 
 
@@ -184,7 +185,7 @@ def line_dp(proj, vector, classifier, test_text, test_text_lines, test_filename,
             defect_cut_off_dict = data[2]
             effort_cut_off_dict = data[3]
             # 评估,oracle, predict, cut_off
-            return proj + ',' + evaluation(oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
+            return evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
 
     i = 0
     # 待解释的文件
@@ -225,7 +226,7 @@ def line_dp(proj, vector, classifier, test_text, test_text_lines, test_filename,
         pickle.dump([oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict], file)
 
     # 评估,oracle, predict, cut_off
-    return proj + ',' + evaluation(oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
+    return evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
 
 
 # ################# 运行版本内预测实验 ###################

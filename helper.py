@@ -9,10 +9,10 @@ import numpy as np
 simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
-root_path = r'C://Users/GZQ/Desktop/CLDP_data'
-file_level_path = root_path + '/Dataset/File-level/'
-line_level_path = root_path + '/Dataset/Line-level/'
-result_path = root_path + '/Result/'
+root_path = r'C://Users/GZQ/Desktop/CLDP_data/'
+file_level_path = root_path + 'Dataset/File-level/'
+line_level_path = root_path + 'Dataset/Line-level/'
+result_path = root_path + 'Result/'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
 
@@ -89,5 +89,19 @@ def read_line_level_dataset(proj):
     return file_buggy_lines_dict
 
 
+# 将结果组合在一个文件中
+def combine_results(proj_list, path):
+    text = 'Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
+    for proj in proj_list:
+        with open(path + 'cr_line_level_evaluation_' + proj + '.csv', 'r') as file:
+            for line in file.readlines()[1:]:
+                text += line
+
+        with open(path + 'result.csv', 'w') as file:
+            file.write(text)
+    print('Finish!')
+
+
 if __name__ == '__main__':
-    read_file_level_dataset('test')
+    projects = ['activemq', 'camel', 'derby', 'groovy', 'hbase', 'hive', 'jruby', 'lucene', 'wicket']
+    combine_results(projects, result_path + 'Simple_f2/')

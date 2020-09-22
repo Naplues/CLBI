@@ -1,10 +1,11 @@
 # -*- coding:utf-8 -*-
 import math
 import numpy as np
+from pprint import pprint
 
 
 # 评估行级别的分类效果
-def evaluation(oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict):
+def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict):
     """
     评估行级别的分类及排序效果
     以下四个字典类型的变量均以文件名作为 key
@@ -52,6 +53,7 @@ def evaluation(oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_c
                 fn += 1
             else:
                 tn += 1
+
     # 计算指标
     recall = tp / (tp + fn)
     far = fp / (fp + tn)
@@ -111,7 +113,8 @@ def evaluation(oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_c
         ifa_list.append(ifa)
     ifa_mean = int(np.mean(ifa_list))
     ifa_median = int(np.median(ifa_list))
-    print('recall,\tFAR,\td2h,\tMCC\n%.3f\t%.3f\t%.3f\t%.3f\n' % (recall, far, d2h, mcc))
-    print('recall_20%%,\t mean IFA,\t median IFA\n%.3f\t%d\t%d\n' % (recall_20, ifa_mean, ifa_median))
 
-    return '%f,%f,%f,%f,%f,%d,%d\n' % (recall, far, d2h, mcc, recall_20, ifa_mean, ifa_median)
+    print('recall\tFAR\td2h\tMCC\tr_20%\tIFA_avg\tIFA_med')
+    print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\n' % (recall, far, d2h, mcc, recall_20, ifa_mean, ifa_median))
+
+    return '%s,%f,%f,%f,%f,%f,%d,%d\n' % (proj, recall, far, d2h, mcc, recall_20, ifa_mean, ifa_median)

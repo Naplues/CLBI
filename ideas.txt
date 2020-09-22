@@ -1,7 +1,10 @@
 1. 有方法调用的代码行更容易出错, 调用层次越多越容易出错 该行的出现的token数目可以表征方法调用的复杂性
 2. 从前往后查看代码,在同一个方法中,分数相同的行应该按照行号进行排列
-f1 = token_number
-f2 = call_depth
+f1 = code location
+f2 = token_number
+f3 = call depth
+f4 = call number
+实证研究 bug在文件中的位置分布
 
 
 RQ1 自身方法的性能

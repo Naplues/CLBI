@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 from warnings import simplefilter
-
+import re
 import pickle
 import numpy as np
 
@@ -102,7 +102,8 @@ def cross_release_prediction(proj, releases_list):
     :param releases_list:
     :return:
     """
-    print('Cross-release prediction for ' + proj)
+    log = '=' * 10 + ' Cross-release prediction for ' + proj + ' ' + '=' * 60
+    print(log[:60])
     # 声明储存预测结果变量
     test_list = []
     pred_list = []
@@ -114,7 +115,7 @@ def cross_release_prediction(proj, releases_list):
 
     # Line-level指标
     line_level_indicators = 'Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
-    print("Training set,\tTest set.")
+    print("Training set\t ===> \tTest set.")
     for i in range(len(releases_list) - 1):
         train_proj, test_proj = releases_list[i], releases_list[i + 1]
         print("%s\t ===> \t%s" % (train_proj, test_proj))
@@ -147,7 +148,7 @@ def cross_release_prediction(proj, releases_list):
         line_level_indicators += r
 
     # 输出行级别的结果
-    with open(result_path + 'cr_' + proj + '.csv', 'w') as file:
+    with open(result_path + 'cr_line_level_evaluation_' + proj + '.csv', 'w') as file:
         file.write(line_level_indicators)
 
     # 打印文件级别的平均结果
@@ -155,22 +156,48 @@ def cross_release_prediction(proj, releases_list):
     print('Avg R:\t%.3f' % np.average(recall_list))
     print('Avg F1:\t%.3f' % np.average(f1_list))
     print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
-    with open(result_path + 'cr_' + releases_list[i + 1] + '.pk', 'wb') as file:
+    with open(result_path + 'cr_file_level_evaluation_' + proj + '.pk', 'wb') as file:
         pickle.dump([test_list, pred_list, precision_list, recall_list, f1_list, mcc_list], file)
 
 
-def call_dept(statement):
+# 嵌套深度相加
+def call_depth(statement):
     statement = statement.strip('\"')
+    score = 0
+    depth = 0
+    for char in statement:
+        if char == '(':
+            depth += 1
+            score += depth
+        elif char == ')':
+            depth -= 1
+    return score
 
-    return 1
+
+def call_number(statement):
+    statement = statement.strip('\"')
+    score = 0
+    for char in statement:
+        if char == '(':
+            score += 1
+    return score
 
 
 # 进行代码行级别的排序
 def simple(proj, vector, test_text, test_text_lines, test_filename, test_predictions, out_file):
-    # 5. 解释代码行级别的缺陷概率
+    """
+    Line-level ranking
+    :param proj:
+    :param vector:
+    :param test_text:
+    :param test_text_lines:
+    :param test_filename:
+    :param test_predictions:
+    :param out_file:
+    :return:
+    """
     # 预测值为有缺陷的文件的索引
     defect_prone_file_indices = np.array([index[0] for index in np.argwhere(test_predictions == 1)])
-
     # 文本分词器
     tokenizer = vector.build_tokenizer()
 
@@ -180,6 +207,8 @@ def simple(proj, vector, test_text, test_text_lines, test_filename, test_predict
     # 一个源文件的排序列表中前多少行有bug
     defect_cut_off_dict = {}
     effort_cut_off_dict = {}
+
+    # 如果结果已经存在,直接读取并评估
     if os.path.exists(out_file):
         with open(out_file, 'rb') as file:
             data = pickle.load(file)
@@ -187,7 +216,7 @@ def simple(proj, vector, test_text, test_text_lines, test_filename, test_predict
             defect_cut_off_dict = data[2]
             effort_cut_off_dict = data[3]
             # 评估,oracle, predict, cut_off
-            return proj + ',' + evaluation(oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
+            return evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
 
     # 待解释的文件
     for target_file_index in defect_prone_file_indices:
@@ -202,24 +231,31 @@ def simple(proj, vector, test_text, test_text_lines, test_filename, test_predict
 
         # 统计 risk tokens 的命中次数, 初始为0
         # ############################ 重点,怎么给每行赋一个缺陷值 ################################
-        hit_count = np.array([0] * len(target_file_lines))
+        hit_count = np.array([.0] * len(target_file_lines))
         for index in range(len(target_file_lines)):
             tokens_in_line = tokenizer(target_file_lines[index])
-            f1 = len(tokens_in_line)
-            f2 = call_dept(target_file_lines[index])
-            f3 = 1. / (index + 1)
-            hit_count[index] += f3
+            # 风险值预测
+            # f1 按照自然位置排序
+            f1 = 1. / (index + 1)
+            # f2 按照单词个数排序
+            f2 = len(tokens_in_line)
+            # f3 按照方法调用深度进行排序
+            f3 = call_depth(target_file_lines[index])
+            # f4 按照方法调用次数进行排序
+            f4 = call_number(target_file_lines[index])
 
-            # 根据命中次数对代码行进行降序排序, 按照排序后数值从大到小的顺序显示代码行在原列表中的索引, cut_off 为切分点
+            hit_count[index] += f2
+        # ############################ 重点,怎么给每行赋一个缺陷值 ################################
+
+        # 根据命中次数对代码行进行降序排序, 按照排序后数值从大到小的顺序显示代码行在原列表中的索引, cut_off 为切分点
         # line + 1,因为下标是从0开始计数而不是从1开始
         ranked_list_dict[target_file_name] = [line + 1 for line in np.argsort(-hit_count).tolist()]
-        defect_cut_off_dict[target_file_name] = len([hit for hit in hit_count if hit > 0])
-
+        defect_cut_off_dict[target_file_name] = int(len(hit_count.tolist()) / 2)
     with open(out_file, 'wb') as file:
         pickle.dump([oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict], file)
 
     # 评估,oracle, predict, cut_off
-    return proj + ',' + evaluation(oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
+    return evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
 
 
 # ################# 运行版本内预测实验 ###################
