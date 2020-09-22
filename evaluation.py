@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
+
 import math
 import numpy as np
-from pprint import pprint
 
 
 # 评估行级别的分类效果
@@ -29,7 +29,7 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, ef
     # 混淆矩阵
     tp, fp, tn, fn = .0, .0, .0, .0
     # 计算评估指标
-    # 统计出预测为有bug的实例 TP, FP
+    # 统计出预测为有bug的代码行实例 TP, FP
     for filename, predicted_line_numbers in predict_as_bug_line_dict.items():
         # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中
         if filename not in oracle_line_dict:
@@ -41,7 +41,7 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, ef
             else:
                 fp += 1
 
-    # 统计出预测为无bug的实例 TN, FN
+    # 统计出预测为无bug的代码行实例 TN, FN
     for filename, predicted_line_numbers in predict_as_clean_line_dict.items():
         # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中
         if filename not in oracle_line_dict:
@@ -56,7 +56,7 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, ef
     # 计算指标
     recall = tp / (tp + fn)
     far = fp / (fp + tn)
-    d2h = math.sqrt(math.pow(1 - recall, 2) + math.pow(far, 2)) / math.sqrt(2)
+    d2h = math.sqrt(math.pow(1 - recall, 2) + math.pow(0 - far, 2)) / math.sqrt(2)
     mcc = (tp * tn - fp * fn) / math.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
 
     # ################## 按照20%工作量进行切分 工作量感知的排序指标 Recall@20% ########################
@@ -117,9 +117,9 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, ef
         # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中
         if filename not in oracle_line_dict:
             continue
+        oracle_line_numbers = oracle_line_dict[filename]
         rr, ap, i, k = .0, .0, 0, len(oracle_line_numbers)
         n += 1
-        oracle_line_numbers = oracle_line_dict[filename]
         for index in range(len(predicted_line_numbers)):
             line_number = predicted_line_numbers[index]
             if line_number in oracle_line_numbers:
@@ -129,8 +129,8 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, ef
         for index in range(len(predicted_line_numbers)):
             line_number = predicted_line_numbers[index]
             if line_number in oracle_line_numbers:
-                i += 1.
-                ap += i / (index + 1)
+                i += 1
+                ap += float(i) / (index + 1)
                 if i == k:
                     break
         _map += ap / k

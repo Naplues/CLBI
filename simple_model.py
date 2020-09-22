@@ -1,10 +1,8 @@
 # -*- coding:utf-8 -*-
-from warnings import simplefilter
-import re
-import pickle
-import numpy as np
 
-from pprint import pprint
+import pickle
+
+import warnings
 from helper import *
 from sklearn import metrics
 from evaluation import evaluation
@@ -14,6 +12,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_extraction.text import CountVectorizer
 
 # 忽略警告信息
+warnings.filterwarnings('ignore')
 simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
@@ -109,27 +108,26 @@ def cross_release_prediction(proj, releases_list):
     mcc_list = []
 
     # Line-level指标
-    line_level_indicators = 'Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
+    line_level_performance = 'Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
     print("Training set\t ===> \tTest set.")
     for i in range(len(releases_list) - 1):
+        # 1. 读取数据 训练版本的索引为 i, 测试版本的索引为 i + 1
         train_proj, test_proj = releases_list[i], releases_list[i + 1]
         print("%s\t ===> \t%s" % (train_proj, test_proj))
-        # 1. 读取数据 训练数据索引为 i 测试数据索引为 i+1
-        # 文本列表 行级别文本列表 标记列表 文件名称
+        #    源码文本列表 源码文本行级别列表 标签列表 文件名称
         train_text, train_text_lines, train_label, train_filename = read_file_level_dataset(train_proj)
         test_text, test_text_lines, test_label, test_filename = read_file_level_dataset(test_proj)
 
-        # 2. 定义一个矢量器
+        # 2. 定义一个矢量器. 拟合矢量器, 将文本特征转换为数值特征
         vector = CountVectorizer(lowercase=False, min_df=2)
-        # 拟合矢量器, 将文本特征转换为数值特征
         train_vtr = vector.fit_transform(train_text)
         test_vtr = vector.transform(test_text)
 
-        # 3. 定义 LogisticRegression 分类器进行预测
-        clf = LogisticRegression(max_iter=10000).fit(train_vtr, train_label)
+        # 3. 定义 LogisticRegression 分类器, 使用默认设置进行训练和预测
+        clf = LogisticRegression().fit(train_vtr, train_label)
         test_predictions = clf.predict(test_vtr)
 
-        # 4. 评估并储存预测结果极其评估指标
+        # 4. 储存文件级别的预测结果和评估指标
         test_list.append(test_label)
         pred_list.append(test_predictions)
         precision_list.append(metrics.precision_score(test_label, test_predictions))
@@ -140,39 +138,16 @@ def cross_release_prediction(proj, releases_list):
         # 5. 解释代码行级别的缺陷概率
         out_file = result_path + 'cr_line_level_ranks_' + test_proj + '.pk'
         r = simple(test_proj, vector, test_text_lines, test_filename, test_predictions, out_file)
-        line_level_indicators += r
+        line_level_performance += r
 
     # 输出行级别的结果
     with open(result_path + 'cr_line_level_evaluation_' + proj + '.csv', 'w') as file:
-        file.write(line_level_indicators)
+        file.write(line_level_performance)
 
     # 打印文件级别的平均结果
     print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
     with open(result_path + 'cr_file_level_evaluation_' + proj + '.pk', 'wb') as file:
         pickle.dump([test_list, pred_list, precision_list, recall_list, f1_list, mcc_list], file)
-
-
-# 嵌套深度相加
-def call_depth(statement):
-    statement = statement.strip('\"')
-    score = 0
-    depth = 0
-    for char in statement:
-        if char == '(':
-            depth += 1
-            score += depth
-        elif char == ')':
-            depth -= 1
-    return score
-
-
-def call_number(statement):
-    statement = statement.strip('\"')
-    score = 0
-    for char in statement:
-        if char == '(':
-            score += 1
-    return score
 
 
 # 进行代码行级别的排序

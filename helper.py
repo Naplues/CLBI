@@ -108,6 +108,29 @@ def combine_results(proj_list, path):
     print('Finish!')
 
 
+# 嵌套深度相加
+def call_depth(statement):
+    statement = statement.strip('\"')
+    score = 0
+    depth = 0
+    for char in statement:
+        if char == '(':
+            depth += 1
+            score += depth
+        elif char == ')':
+            depth -= 1
+    return score
+
+
+def call_number(statement):
+    statement = statement.strip('\"')
+    score = 0
+    for char in statement:
+        if char == '(':
+            score += 1
+    return score
+
+
 def output_result():
     pass
 
