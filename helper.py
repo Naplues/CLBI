@@ -98,21 +98,29 @@ def dump_result(out_file, data):
 
 
 # 将行级别的评估结果组合在一个文件中
-def combine_results(proj_list, path):
+def combine_results(path):
     """
     将行级别的评估结果组合在一个文件中
-    :param proj_list:
     :param path:
     :return:
     """
-    text = 'Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
-    for proj in proj_list:
-        with open(path + 'cr_line_level_evaluation_' + proj + '.csv', 'r') as file:
-            for line in file.readlines()[1:]:
-                text += line
+    projects = ['activemq', 'camel', 'derby', 'groovy', 'hbase', 'hive', 'jruby', 'lucene', 'wicket']
 
-        with open(path + 'result.csv', 'w') as file:
-            file.write(text)
+    text_normal = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
+    text_worst = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
+    for proj in projects:
+        with open(path + 'cr_line_level_evaluation_' + proj + '.csv', 'r') as file:
+            count = 0
+            for line in file.readlines()[1:]:
+                if count % 2 == 0:
+                    text_normal += line
+                else:
+                    text_worst += line
+
+        with open(path + 'result_normal.csv', 'w') as file:
+            file.write(text_normal)
+        with open(path + 'result_worst.csv', 'w') as file:
+            file.write(text_worst)
     print('Finish!')
 
 
@@ -149,5 +157,4 @@ def make_path(path):
 
 
 if __name__ == '__main__':
-    projects = ['activemq', 'camel', 'derby', 'groovy', 'hbase', 'hive', 'jruby', 'lucene', 'wicket']
-    combine_results(projects, result_path + 'Simple_no_adjust/')
+    combine_results(result_path + 'Simple/')  # LineDP

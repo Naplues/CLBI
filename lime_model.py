@@ -284,6 +284,9 @@ def run_cross_release_prediction():
     for project, releases in projects_dict.items():
         cross_release_prediction(proj=project, releases_list=releases)
 
+    # 组合评估结果文件
+    combine_results(result_path)
+
 
 if __name__ == '__main__':
     # 运行版本内预测实验
