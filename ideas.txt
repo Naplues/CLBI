@@ -10,3 +10,6 @@ f4 = call number
 RQ1 自身方法的性能
 RQ2 与LINE_DP进行对比
 
+
+调整为最差的序列时,会影响Simple模型的Recall,FAR等分类指标,因为Simple的分类结果是依赖于排序结果的
+但是不会影响Supervised模型的分类指标,因为它不依赖于排序序列进行分类

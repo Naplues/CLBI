@@ -18,12 +18,15 @@ warnings.filterwarnings('ignore')
 simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
+
 root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 file_level_path = root_path + '/Dataset/File-level/'
 line_level_path = root_path + '/Dataset/Line-level/'
 result_path = root_path + '/Result/LineDP/'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
+
+make_path(result_path)
 
 
 # 版本内预测实验
@@ -121,7 +124,7 @@ def cross_release_prediction(proj, releases_list):
     mcc_list = []
 
     # Line-level指标
-    performance = 'Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
+    performance = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median,MRR,MAP\n'
     print("Training set\t ===> \tTest set.")
     for i in range(len(releases_list) - 1):
         # 1. 读取数据 训练版本的索引为 i, 测试版本的索引为 i + 1
@@ -155,7 +158,7 @@ def cross_release_prediction(proj, releases_list):
         if os.path.exists(out_file):
             with open(out_file, 'rb') as file:
                 data = pickle.load(file)
-                performance += evaluation(proj, read_line_level_dataset(test_proj), data[1], data[2], data[3])
+                performance += evaluation(proj, data[0], data[1], data[2], data[3], data[4])
         else:
             performance += line_dp(test_proj, vector, clf, test_text_lines, test_filename, test_predictions, out_file)
 
@@ -182,12 +185,12 @@ def line_dp(proj, vector, classifier, test_text_lines, test_filename, test_predi
     :param out_file:
     :return:
     """
-
     # 正确bug行号字典 预测bug行号字典 二分类切分点字典 工作量切分点字典
     oracle_line_dict = read_line_level_dataset(proj)
     ranked_list_dict = {}
-    defect_cut_off_dict = {}
-    effort_cut_off_dict = {}
+    worst_list_dict = {}
+    defect_cf_dict = {}
+    effort_cf_dict = {}
 
     # 预测为有缺陷的文件的索引
     defect_prone_file_indices = np.array([index[0] for index in np.argwhere(test_predictions == 1)])
@@ -209,13 +212,11 @@ def line_dp(proj, vector, classifier, test_text_lines, test_filename, test_predi
             continue
         # 目标文件的代码行列表
         target_file_lines = test_text_lines[target_file_index]
-        # cut-off: 20% effort (i.e, LOC)
-        effort_cut_off_dict[target_file_name] = int(.2 * len(target_file_lines))
 
         # ####################################### 核心部分 #################################################
         # 对分类结果进行解释
         exp = explainer.explain_instance(' '.join(target_file_lines), c.predict_proba, num_features=100)
-        # 取出risk tokens, 取前20个, 可能不足20个 TODO
+        # 取出risk tokens, 取前20个, 可能不足20个
         positive_tokens = [x[0] for x in exp.as_list() if x[1] > 0][:20]
 
         # 统计 每一行中出现 risk tokens 的个数, 初始为 [0 0 0 0 0 0 ... 0 0], 注意行号从0开始计数
@@ -233,28 +234,35 @@ def line_dp(proj, vector, classifier, test_text_lines, test_filename, test_predi
         # line + 1,因为原列表中代表行号的索引是从0开始计数而不是从1开始
         sorted_index = np.argsort(-hit_count)
         sorted_line_number = [line + 1 for line in sorted_index.tolist()]
+        # 原始未经过调整的列表
+        ranked_list_dict[target_file_name] = sorted_line_number
 
         # ####################################### 将序列调整为理论上的最差性能  实际使用时可以去掉 ################
+        # 需要调整为最差排序的列表,当分数相同时
+        worst_line_number = list(sorted_line_number)
         sorted_list = hit_count[sorted_index]
         worse_list, current_score, start_index, oracle_lines = [], -1, -1, oracle_line_dict[target_file_name]
         for ii in range(len(sorted_list)):
             if sorted_list[ii] != current_score:
                 current_score = sorted_list[ii]
                 start_index = ii
-            elif sorted_line_number[ii] not in oracle_lines:
-                temp = sorted_line_number[ii]  # 取出这个无bug的行号
+            elif worst_line_number[ii] not in oracle_lines:
+                temp = worst_line_number[ii]  # 取出这个无bug的行号
                 for t in range(ii, start_index, -1):
-                    sorted_line_number[t] = sorted_line_number[t - 1]
-                sorted_line_number[start_index] = temp
+                    worst_line_number[t] = worst_line_number[t - 1]
+                worst_line_number[start_index] = temp
+        worst_list_dict[target_file_name] = worst_line_number
         # ####################################### 将序列调整为理论上的最差性能  实际使用时可以去掉 ################
 
-        ranked_list_dict[target_file_name] = sorted_line_number
+        # ###################################### 切分点设置 ################################################
+        # 20% effort (i.e, LOC)
+        effort_cf_dict[target_file_name] = int(.2 * len(target_file_lines))
         # 设置分类切分点: 所有包含risk tokens (i.e., hit_count[i] > 0) 的代码行被预测为有 bug
-        defect_cut_off_dict[target_file_name] = len([hit for hit in hit_count if hit > 0])
+        defect_cf_dict[target_file_name] = len([hit for hit in hit_count if hit > 0])
         print('%d/%d files predicted finish!' % (defect_file_index, len(defect_prone_file_indices)))
 
-    dump_result(out_file, [oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict])
-    return evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
+    dump_result(out_file, [oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict])
+    return evaluation(proj, oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict)
 
 
 # ################# 运行版本内预测实验 ###################

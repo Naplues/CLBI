@@ -5,17 +5,25 @@ import numpy as np
 
 
 # 评估行级别的分类效果
-def evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict):
+def evaluation(proj, oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cut_off_dict, effort_cut_off_dict):
     """
     评估行级别的分类及排序效果
     以下四个字典类型的变量均以文件名作为 key
     :param proj: 项目版本名
     :param oracle_line_dict: 真实的 bug行列表字典
     :param ranked_list_dict: 预测的 bug行序列字典
+    :param worst_list_dict:  预测的 bug行最差序列字典
     :param defect_cut_off_dict: 二分类 切分点字典
     :param effort_cut_off_dict: 工作量 切分点字典
     :return:
     """
+    r_normal = 'normal,' + evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
+    r_worst = 'worst,' + evaluator(proj, oracle_line_dict, worst_list_dict, defect_cut_off_dict, effort_cut_off_dict)
+    return r_normal + r_worst
+
+
+# 评估行级别的分类效果
+def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict):
     # 预测为有bug的行号
     predict_as_bug_line_dict = {}
     # 预测为无bug的行号

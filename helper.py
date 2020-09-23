@@ -143,7 +143,11 @@ def call_number(statement):
     return score
 
 
+def make_path(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
 if __name__ == '__main__':
     projects = ['activemq', 'camel', 'derby', 'groovy', 'hbase', 'hive', 'jruby', 'lucene', 'wicket']
-    combine_results(projects, result_path + 'LineDP_no_adjust/')
-
+    combine_results(projects, result_path + 'Simple_no_adjust/')
