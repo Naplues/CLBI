@@ -18,11 +18,11 @@ warnings.filterwarnings('ignore')
 simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
-
+random_seed = 0 # random seed is set as 0-9
 root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 file_level_path = root_path + '/Dataset/File-level/'
 line_level_path = root_path + '/Dataset/Line-level/'
-result_path = root_path + '/Result/LineDP/'
+result_path = root_path + '/Result/LineDP_' + str(random_seed) + '/'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
 
@@ -124,7 +124,7 @@ def cross_release_prediction(proj, releases_list):
     mcc_list = []
 
     # Line-level指标
-    performance = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median,MRR,MAP\n'
+    performance = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
     print("Training set\t ===> \tTest set.")
     for i in range(len(releases_list) - 1):
         # 1. 读取数据 训练版本的索引为 i, 测试版本的索引为 i + 1
@@ -200,7 +200,7 @@ def line_dp(proj, vector, classifier, test_text_lines, test_filename, test_predi
     # 制作管道
     c = make_pipeline(vector, classifier)
     # 定义解释器
-    explainer = LimeTextExplainer(class_names=['defect', 'non-defect'])
+    explainer = LimeTextExplainer(class_names=['defect', 'non-defect'], random_state=random_seed)
 
     # 对预测为有bug的文件逐个进行解释结果来进行代码行级别的预测
     for defect_file_index in range(len(defect_prone_file_indices)):

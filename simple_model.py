@@ -120,7 +120,7 @@ def cross_release_prediction(proj, releases_list):
     mcc_list = []
 
     # Line-level指标
-    performance = 'Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
+    performance = 'Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
     print("Training set\t ===> \tTest set.")
     for i in range(len(releases_list) - 1):
         # 1. 读取数据 训练版本的索引为 i, 测试版本的索引为 i + 1
@@ -191,6 +191,9 @@ def simple(proj, vector, test_text_lines, test_filename, test_predictions, out_f
 
     # 预测值为有缺陷的文件的索引
     defect_prone_file_indices = np.array([index[0] for index in np.argwhere(test_predictions == 1)])
+    # 所有的测试文件
+    # defect_prone_file_indices = np.array([index for index in range(len(test_predictions))])
+
     # 文本分词器
     tokenizer = vector.build_tokenizer()
 
@@ -199,7 +202,7 @@ def simple(proj, vector, test_text_lines, test_filename, test_predictions, out_f
         target_file_index = defect_prone_file_indices[i]
         # 目标文件名
         target_file_name = test_filename[target_file_index]
-        # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中,这类文件要剔除
+        # 有的测试文件(被预测为有bug,但实际上)没有bug,因此不会出现在 oracle 中,这类文件要剔除
         if target_file_name not in oracle_line_dict:
             continue
         # 目标文件的代码行列表
