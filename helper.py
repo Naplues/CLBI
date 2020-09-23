@@ -3,6 +3,8 @@ from warnings import simplefilter
 
 import os
 import re
+
+import pickle
 import numpy as np
 
 # 忽略警告信息
@@ -89,6 +91,12 @@ def read_line_level_dataset(proj):
     return file_buggy_lines_dict
 
 
+# 保存结果
+def dump_result(out_file, data):
+    with open(out_file, 'wb') as file:
+        pickle.dump(data, file)
+
+
 # 将行级别的评估结果组合在一个文件中
 def combine_results(proj_list, path):
     """
@@ -106,6 +114,10 @@ def combine_results(proj_list, path):
         with open(path + 'result.csv', 'w') as file:
             file.write(text)
     print('Finish!')
+
+
+def parse_results(proj, path):
+    pass
 
 
 # 嵌套深度相加
@@ -131,10 +143,7 @@ def call_number(statement):
     return score
 
 
-def output_result():
-    pass
-
-
 if __name__ == '__main__':
     projects = ['activemq', 'camel', 'derby', 'groovy', 'hbase', 'hive', 'jruby', 'lucene', 'wicket']
-    combine_results(projects, result_path + 'Simple_f5/')
+    combine_results(projects, result_path + 'LineDP_no_adjust/')
+

@@ -113,7 +113,7 @@ def cross_release_prediction(proj, releases_list):
     print(log[:60])
     # 声明储存预测结果变量
     test_list = []
-    pred_list = []
+    prediction_list = []
     # 声明储存评估指标变量
     precision_list = []
     recall_list = []
@@ -142,7 +142,7 @@ def cross_release_prediction(proj, releases_list):
 
         # 4. 储存文件级别的预测结果和评估指标
         test_list.append(test_label)
-        pred_list.append(test_predictions)
+        prediction_list.append(test_predictions)
         precision_list.append(metrics.precision_score(test_label, test_predictions))
         recall_list.append(metrics.recall_score(test_label, test_predictions))
         f1_list.append(metrics.f1_score(test_label, test_predictions))
@@ -166,7 +166,7 @@ def cross_release_prediction(proj, releases_list):
     # 打印文件级别的平均结果
     print('File level Avg MCC:\t%.3f\n' % np.average(mcc_list))
     with open(result_path + 'cr_file_level_evaluation_' + proj + '.pk', 'wb') as file:
-        pickle.dump([test_list, pred_list, precision_list, recall_list, f1_list, mcc_list], file)
+        pickle.dump([test_list, prediction_list, precision_list, recall_list, f1_list, mcc_list], file)
 
 
 # OK 进行代码行级别的排序
@@ -191,29 +191,33 @@ def line_dp(proj, vector, classifier, test_text_lines, test_filename, test_predi
 
     # 预测为有缺陷的文件的索引
     defect_prone_file_indices = np.array([index[0] for index in np.argwhere(test_predictions == 1)])
+    # 文本分词器
+    tokenizer = vector.build_tokenizer()
+
     # 制作管道
     c = make_pipeline(vector, classifier)
     # 定义解释器
     explainer = LimeTextExplainer(class_names=['defect', 'non-defect'])
-    # 文本分词器
-    tokenizer = vector.build_tokenizer()
 
     # 对预测为有bug的文件逐个进行解释结果来进行代码行级别的预测
-    for i in range(len(defect_prone_file_indices)):
-        target_file_index = defect_prone_file_indices[i]
+    for defect_file_index in range(len(defect_prone_file_indices)):
+        target_file_index = defect_prone_file_indices[defect_file_index]
         # 目标文件名
         target_file_name = test_filename[target_file_index]
+        # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中,这类文件要剔除
+        if target_file_name not in oracle_line_dict:
+            continue
         # 目标文件的代码行列表
         target_file_lines = test_text_lines[target_file_index]
         # cut-off: 20% effort (i.e, LOC)
         effort_cut_off_dict[target_file_name] = int(.2 * len(target_file_lines))
 
+        # ####################################### 核心部分 #################################################
         # 对分类结果进行解释
         exp = explainer.explain_instance(' '.join(target_file_lines), c.predict_proba, num_features=100)
         # 取出risk tokens, 取前20个, 可能不足20个 TODO
-        positive_tokens = [i[0] for i in exp.as_list() if i[1] > 0][:20]
+        positive_tokens = [x[0] for x in exp.as_list() if x[1] > 0][:20]
 
-        # ####################################### 核心部分 #################################################
         # 统计 每一行中出现 risk tokens 的个数, 初始为 [0 0 0 0 0 0 ... 0 0], 注意行号从0开始计数
         hit_count = np.array([0] * len(target_file_lines))
         for line_index in range(len(target_file_lines)):
@@ -227,14 +231,29 @@ def line_dp(proj, vector, classifier, test_text_lines, test_filename, test_predi
 
         # 根据命中次数对所有代码行进行降序排序, 按照排序后数值从大到小的顺序显示每个元素在原列表中的索引(i.e., 行号-1)
         # line + 1,因为原列表中代表行号的索引是从0开始计数而不是从1开始
-        ranked_list_dict[target_file_name] = [line + 1 for line in np.argsort(-hit_count).tolist()]
+        sorted_index = np.argsort(-hit_count)
+        sorted_line_number = [line + 1 for line in sorted_index.tolist()]
+
+        # ####################################### 将序列调整为理论上的最差性能  实际使用时可以去掉 ################
+        sorted_list = hit_count[sorted_index]
+        worse_list, current_score, start_index, oracle_lines = [], -1, -1, oracle_line_dict[target_file_name]
+        for ii in range(len(sorted_list)):
+            if sorted_list[ii] != current_score:
+                current_score = sorted_list[ii]
+                start_index = ii
+            elif sorted_line_number[ii] not in oracle_lines:
+                temp = sorted_line_number[ii]  # 取出这个无bug的行号
+                for t in range(ii, start_index, -1):
+                    sorted_line_number[t] = sorted_line_number[t - 1]
+                sorted_line_number[start_index] = temp
+        # ####################################### 将序列调整为理论上的最差性能  实际使用时可以去掉 ################
+
+        ranked_list_dict[target_file_name] = sorted_line_number
         # 设置分类切分点: 所有包含risk tokens (i.e., hit_count[i] > 0) 的代码行被预测为有 bug
         defect_cut_off_dict[target_file_name] = len([hit for hit in hit_count if hit > 0])
-        print('%d/%d files predicted finish!' % (i, len(defect_prone_file_indices)))
+        print('%d/%d files predicted finish!' % (defect_file_index, len(defect_prone_file_indices)))
 
-    with open(out_file, 'wb') as file:
-        pickle.dump([oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict], file)
-
+    dump_result(out_file, [oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict])
     return evaluation(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
 
 
