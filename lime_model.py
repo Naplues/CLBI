@@ -1,7 +1,5 @@
 # -*- coding:utf-8 -*-
 
-import pickle
-
 import warnings
 from helper import *
 from sklearn import metrics
@@ -18,7 +16,7 @@ warnings.filterwarnings('ignore')
 simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
-random_seed = 0 # random seed is set as 0-9
+random_seed = 0  # random seed is set as 0-9
 root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 file_level_path = root_path + '/Dataset/File-level/'
 line_level_path = root_path + '/Dataset/Line-level/'

@@ -116,6 +116,7 @@ def combine_results(path):
                     text_normal += line
                 else:
                     text_worst += line
+                count += 1
 
         with open(path + 'result_normal.csv', 'w') as file:
             file.write(text_normal)
