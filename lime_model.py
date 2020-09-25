@@ -207,7 +207,7 @@ def line_dp(proj, vector, classifier, test_text_lines, test_filename, test_predi
         target_file_name = test_filename[target_file_index]
         # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中,这类文件要剔除
         if target_file_name not in oracle_line_dict:
-            continue
+            oracle_line_dict[target_file_name] = []
         # 目标文件的代码行列表
         target_file_lines = test_text_lines[target_file_index]
 

@@ -204,7 +204,7 @@ def simple(proj, vector, test_text_lines, test_filename, test_predictions, out_f
         target_file_name = test_filename[target_file_index]
         # 有的测试文件(被预测为有bug,但实际上)没有bug,因此不会出现在 oracle 中,这类文件要剔除
         if target_file_name not in oracle_line_dict:
-            continue
+            oracle_line_dict[target_file_name] = []
         # 目标文件的代码行列表
         target_file_lines = test_text_lines[target_file_index]
 
@@ -215,6 +215,8 @@ def simple(proj, vector, test_text_lines, test_filename, test_predictions, out_f
             tokens_in_line = tokenizer(target_file_lines[index])
             #  考虑调用深度和单词数
             hit_count[index] = len(tokens_in_line) * call_depth(target_file_lines[index])
+            if 'return' in tokens_in_line:
+                hit_count[index] += len(tokens_in_line) * 1  # 1
         # ############################ 重点,怎么给每行赋一个缺陷值 ################################
 
         # 根据命中次数对代码行进行降序排序, 按照排序后数值从大到小的顺序显示代码行在原列表中的索引, cut_off 为切分点
