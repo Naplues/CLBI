@@ -122,7 +122,7 @@ def cross_release_prediction(proj, releases_list):
     mcc_list = []
 
     # Line-level指标
-    performance = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
+    performance = 'Setting,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
     print("Training set\t ===> \tTest set.")
     for i in range(len(releases_list) - 1):
         # 1. 读取数据 训练版本的索引为 i, 测试版本的索引为 i + 1

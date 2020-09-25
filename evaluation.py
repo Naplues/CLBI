@@ -60,7 +60,7 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
     far = fp / (fp + tn)
     d2h = math.sqrt(math.pow(1 - recall, 2) + math.pow(0 - far, 2)) / math.sqrt(2)
     mcc = (tp * tn - fp * fn) / math.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
-
+    ce = fn / (fn + tn)
     # ################## 按照20%工作量进行切分 工作量感知的排序指标 Recall@20% ########################
     for target_file_name, ranked_list in ranked_list_dict.items():
         cut_off = effort_cut_off_dict[target_file_name]
@@ -130,9 +130,9 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
     _mrr /= n
     _map /= n
 
-    print('recall\tFAR\td2h\tMCC\tr_20%\tIFA_avg\tIFA_med\tMRR\tMAP')
-    print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\t%.3f\t%.3f\n' %
-          (recall, far, d2h, mcc, recall_20, ifa_mean, ifa_median, _mrr, _map))
+    print('recall\tFAR\td2h\tMCC\tCE\tr_20%\tIFA_avg\tIFA_med\tMRR\tMAP')
+    print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\t%.3f\t%.3f\n' %
+          (recall, far, d2h, mcc, ce, recall_20, ifa_mean, ifa_median, _mrr, _map))
 
-    return '%s,%f,%f,%f,%f,%f,%d,%d,%f,%f,%s\n' % (
-        proj, recall, far, d2h, mcc, recall_20, ifa_mean, ifa_median, _mrr, _map, ifa)
+    return '%s,%f,%f,%f,%.f,%f,%f,%d,%d,%f,%f,%s\n' % (
+        proj, recall, far, d2h, mcc, ce, recall_20, ifa_mean, ifa_median, _mrr, _map, ifa)
