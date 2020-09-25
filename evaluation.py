@@ -110,6 +110,8 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
         oracle_line_numbers = oracle_line_dict[filename]
         rr, ap, i, k = .0, .0, 0, len(oracle_line_numbers)
         n += 1
+        if k == 0:
+            continue
         for index in range(len(predicted_line_ranks)):
             line_number = predicted_line_ranks[index]
             if line_number in oracle_line_numbers:
