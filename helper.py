@@ -157,5 +157,29 @@ def make_path(path):
         os.makedirs(path)
 
 
+# 数据集统计信息
+def dataset_statistics():
+    print('release name, #files, #buggy files, ratio, #LOC, #buggy LOC, ratio, #tokens')
+    for proj in get_project_list(file_level_path):
+        texts, texts_lines, numeric_labels, src_files = read_file_level_dataset(proj)
+
+        file_num = len(texts)
+        bug_num = len([l for l in numeric_labels if l == 1])
+        file_ratio = bug_num / file_num
+
+        loc = sum([len([line for line in text if not line == ""]) for text in texts_lines])
+        bug_lines = sum([len(v) for k, v in read_line_level_dataset(proj).items()])
+        line_ratio = bug_lines / loc
+
+        from sklearn.feature_extraction.text import CountVectorizer
+        # 2. 定义一个矢量器. 拟合矢量器, 将文本特征转换为数值特征
+        vector = CountVectorizer()
+        vector.fit_transform(texts)
+
+        tokens = len(vector.vocabulary_)
+        res = (proj, file_num, bug_num, file_ratio, loc, bug_lines, line_ratio, tokens)
+        print("%s, %d, %d, %f, %d, %d, %f, %d" % res)
+
+
 if __name__ == '__main__':
-    combine_results(result_path + 'Simple/')  # LineDP
+    dataset_statistics()
