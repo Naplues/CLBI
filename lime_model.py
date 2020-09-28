@@ -20,11 +20,13 @@ random_seed = 0  # random seed is set as 0-9
 root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 file_level_path = root_path + '/Dataset/File-level/'
 line_level_path = root_path + '/Dataset/Line-level/'
-result_path = root_path + '/Result/LineDP_' + str(random_seed) + '/'
+cp_result_path = root_path + '/Result/CP/LineDP_' + str(random_seed) + '/'
+wp_result_path = root_path + '/Result/WP/LineDP_' + str(random_seed) + '/'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
 
-make_path(result_path)
+make_path(cp_result_path)
+make_path(wp_result_path)
 
 
 # 版本内预测实验
@@ -89,16 +91,16 @@ def within_release_prediction(proj, num_iter=10, num_folds=10):
             mcc_list.append(metrics.matthews_corrcoef(test_labels, test_predictions))
 
             # 5. 解释代码行级别的缺陷概率
-            out_file = result_path + 'wr_line_risk_ranks_' + proj + '_' + str(it) + '_' + str(fold) + '.pk'
+            out_file = wp_result_path + 'wr_line_risk_ranks_' + proj + '_' + str(it) + '_' + str(fold) + '.pk'
             line_dp(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file)
 
     # 将行级别的性能评估结果写入文件
-    with open(result_path + 'wr_line_level_evaluation_' + proj + '.csv', 'w') as file:
+    with open(wp_result_path + 'wr_line_level_evaluation_' + proj + '.csv', 'w') as file:
         file.write(performance)
 
     # 打印平均结果
     print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
-    with open(result_path + 'wr_file_level_evaluation' + proj + '.pk', 'wb') as file:
+    with open(wp_result_path + 'wr_file_level_evaluation' + proj + '.pk', 'wb') as file:
         pickle.dump([test_list, prediction_list, precision_list, recall_list, f1_list, mcc_list], file)
 
 
@@ -150,7 +152,7 @@ def cross_release_prediction(proj, releases_list):
         mcc_list.append(metrics.matthews_corrcoef(test_label, test_predictions))
 
         # 5. 预测代码行级别的缺陷概率
-        out_file = result_path + 'cr_line_level_ranks_' + test_proj + '.pk'
+        out_file = cp_result_path + 'cr_line_level_ranks_' + test_proj + '.pk'
 
         # 如果模型的结果已经存在直接进行评估, 否则重新进行预测并评估
         if os.path.exists(out_file):
@@ -161,12 +163,12 @@ def cross_release_prediction(proj, releases_list):
             performance += line_dp(test_proj, vector, clf, test_text_lines, test_filename, test_predictions, out_file)
 
     # 将行级别的性能评估结果写入文件
-    with open(result_path + 'cr_line_level_evaluation_' + proj + '.csv', 'w') as file:
+    with open(cp_result_path + 'cr_line_level_evaluation_' + proj + '.csv', 'w') as file:
         file.write(performance)
 
     # 打印文件级别的平均结果
     print('File level Avg MCC:\t%.3f\n' % np.average(mcc_list))
-    with open(result_path + 'cr_file_level_evaluation_' + proj + '.pk', 'wb') as file:
+    with open(cp_result_path + 'cr_file_level_evaluation_' + proj + '.pk', 'wb') as file:
         pickle.dump([test_list, prediction_list, precision_list, recall_list, f1_list, mcc_list], file)
 
 
@@ -283,7 +285,7 @@ def run_cross_release_prediction():
         cross_release_prediction(proj=project, releases_list=releases)
 
     # 组合评估结果文件
-    combine_results(result_path)
+    combine_results(cp_result_path)
 
 
 if __name__ == '__main__':
