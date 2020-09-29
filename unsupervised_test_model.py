@@ -110,83 +110,40 @@ def cross_release_prediction(proj, releases_list):
     :param releases_list:
     :return:
     """
-    log = '=' * 10 + ' Cross-release prediction for ' + proj + ' ' + '=' * 60
-    print(log[:60])
-    # 声明储存预测结果变量
-    test_list = []
-    prediction_list = []
-    # 声明储存评估指标变量
-    precision_list = []
-    recall_list = []
-    f1_list = []
-    mcc_list = []
+    test_proj = releases_list[0]
+    print("%s" % test_proj)
+    #    源码文本列表 源码文本行级别列表 标签列表 文件名称
+    test_text, test_text_lines, test_label, test_filename = read_file_level_dataset(test_proj)
+    # 2. 定义一个矢量器. 拟合矢量器, 将文本特征转换为数值特征
+    vector = CountVectorizer(lowercase=False, min_df=1)
 
-    # Line-level指标
-    performance = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
-    print("Training set\t ===> \tTest set.")
-    for i in range(len(releases_list) - 1):
-        # 1. 读取数据 训练版本的索引为 i, 测试版本的索引为 i + 1
-        train_proj, test_proj = releases_list[i], releases_list[i + 1]
-        print("%s\t ===> \t%s" % (train_proj, test_proj))
-        #    源码文本列表 源码文本行级别列表 标签列表 文件名称
-        test_text, test_text_lines, test_label, test_filename = read_file_level_dataset(test_proj)
-
-        # 2. 定义一个矢量器. 拟合矢量器, 将文本特征转换为数值特征
-        vector = CountVectorizer(lowercase=False, min_df=1)
-
-        line_dim_score = []
-        token_dim_score = []
-
-        for text_line in test_text_lines:
-            line_dim_score.append(len(text_line))
-            if len(text_line) == 0:
-                token_dim_score.append(0)
-            else:
-                vector.fit_transform(text_line)
-                token_dim_score.append(len(vector.vocabulary_) * len(text_line))
-
-        # 最终分数
-        final_score = np.array(token_dim_score)
-
-        sorted_index = np.argsort(-final_score)
-        cutoff = int(0.05 * len(sorted_index))
-        buggy_index = sorted_index[:cutoff]
-
-        test_predictions = [0] * len(sorted_index)
-        for index in buggy_index:
-            test_predictions[index] = 1
-
-        test_predictions = np.array(test_predictions)
-
-        # 4. 储存文件级别的预测结果和评估指标
-        test_list.append(test_label)
-        prediction_list.append(test_predictions)
-        precision_list.append(metrics.precision_score(test_label, test_predictions))
-        recall_list.append(metrics.recall_score(test_label, test_predictions))
-        f1_list.append(metrics.f1_score(test_label, test_predictions))
-        mcc_list.append(metrics.matthews_corrcoef(test_label, test_predictions))
-
-        # 5. 解释代码行级别的缺陷概率
-        out_file = cp_result_path + 'cr_line_level_ranks_' + test_proj + '.pk'
-
-        # 如果模型的结果已经存在直接进行评估, 否则重新进行预测并评估
-        if os.path.exists(out_file):
-            with open(out_file, 'rb') as file:
-                data = pickle.load(file)
-                # with open(root_path + '/Result/LineDP/cr_line_level_ranks_' + test_proj + '.pk',  'rb') as f:
-                # cut_data = pickle.load(f) cut_data[1], cut_data[2]
-                performance += evaluation(proj, data[0], data[1], data[2], data[3], data[4])
+    line_dim_buggy, line_dim_clean = [], []
+    for x in range(len(test_label)):
+        if test_label[x] == 1:
+            line_dim_buggy.append(len(test_text_lines[x]))
         else:
-            performance += simple(test_proj, vector, test_text_lines, test_filename, test_predictions, out_file)
+            line_dim_clean.append(len(test_text_lines[x]))
 
-    # 输出行级别的结果
-    with open(cp_result_path + 'cr_line_level_evaluation_' + proj + '.csv', 'w') as file:
-        file.write(performance)
+    token_dim_buggy, token_dim_clean = [], []
+    for x in range(len(test_label)):
+        tokens = 0
+        if len(test_text_lines[x]) != 0:
+            vector.fit_transform(test_text_lines[x])
+            tokens = len(vector.vocabulary_)
 
-    # 打印文件级别的平均结果
-    print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
-    with open(cp_result_path + 'cr_file_level_evaluation_' + proj + '.pk', 'wb') as file:
-        pickle.dump([test_list, prediction_list, precision_list, recall_list, f1_list, mcc_list], file)
+        if test_label[x] == 1:
+            token_dim_buggy.append(tokens)
+        else:
+            token_dim_clean.append(tokens)
+
+    # print(line_dim_buggy)
+    # print(line_dim_clean)
+
+    # print(token_dim_buggy)
+    # print(token_dim_clean)
+
+    print(len(line_dim_buggy))
+    print(len(line_dim_clean))
 
 
 # 进行代码行级别的排序
@@ -266,7 +223,7 @@ def simple(proj, vector, test_text_lines, test_filename, test_predictions, out_f
         # 20% effort (i.e., LOC)
         effort_cf_dict[target_file_name] = int(.2 * len(target_file_lines))
         # 设置分类切分点: 默认前50%
-        defect_cf_dict[target_file_name] = int(.2 * len(target_file_lines))
+        defect_cf_dict[target_file_name] = int(.5 * len(target_file_lines))
 
     dump_result(out_file, [oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict])
     return evaluation(proj, oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict)
@@ -290,9 +247,6 @@ def run_cross_release_prediction():
             projects_dict[project].append(release.replace(file_level_path_suffix, ''))
     for project, releases in projects_dict.items():
         cross_release_prediction(proj=project, releases_list=releases)
-
-    # 组合评估结果文件
-    combine_results(cp_result_path)
 
 
 if __name__ == '__main__':

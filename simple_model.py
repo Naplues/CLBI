@@ -18,8 +18,8 @@ simplefilter(action='ignore', category=FutureWarning)
 root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 file_level_path = root_path + '/Dataset/File-level/'
 line_level_path = root_path + '/Dataset/Line-level/'
-cp_result_path = root_path + '/Result/Simple/'
-wp_result_path = root_path + '/Result/Simple/'
+cp_result_path = root_path + '/Result/CP/Simple/'
+wp_result_path = root_path + '/Result/WP/Simple/'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
 
@@ -217,8 +217,12 @@ def simple(proj, vector, test_text_lines, test_filename, test_predictions, out_f
             tokens_in_line = tokenizer(target_file_lines[index])
             #  考虑调用深度和单词数
             hit_count[index] = len(tokens_in_line) * call_depth(target_file_lines[index])
-            if 'return' in tokens_in_line:
+            if 'return' in tokens_in_line \
+                    or 'break' in tokens_in_line \
+                    or 'continue' in tokens_in_line \
+                    or 'do' in tokens_in_line:
                 hit_count[index] += len(tokens_in_line) * 1  # 1
+
         # ############################ 重点,怎么给每行赋一个缺陷值 ################################
 
         # 根据命中次数对代码行进行降序排序, 按照排序后数值从大到小的顺序显示代码行在原列表中的索引, cut_off 为切分点
