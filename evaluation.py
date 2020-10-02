@@ -56,11 +56,15 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
                 tn += 1
 
     # 计算指标
-    recall = tp / (tp + fn)
-    far = fp / (fp + tn)
+    recall = .0 if tp + fn == .0 else tp / (tp + fn)
+    far = .0 if fp + tn == 0 else fp / (fp + tn)
     d2h = math.sqrt(math.pow(1 - recall, 2) + math.pow(0 - far, 2)) / math.sqrt(2)
-    mcc = (tp * tn - fp * fn) / math.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
-    ce = fn / (fn + tn)
+
+    mcc = .0 if tp + fp == .0 or tp + fn == .0 or tn + fp == .0 or tn + fn == .0 else \
+        (tp * tn - fp * fn) / math.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
+
+    ce = .0 if fn + tn == .0 else fn / (fn + tn)
+
     # ################## 按照20%工作量进行切分 工作量感知的排序指标 Recall@20% ########################
     for target_file_name, ranked_list in ranked_list_dict.items():
         cut_off = effort_cut_off_dict[target_file_name]
@@ -87,7 +91,9 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
             else:
                 tn += 1
 
-    recall_20 = tp / (tp + fn)
+    recall_20 = .0
+    if tp + fn != .0:
+        recall_20 = tp / (tp + fn)
 
     # 统计IFA
     ifa_list = []
@@ -100,8 +106,9 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
             else:
                 break
         ifa_list.append(ifa)
-    ifa_mean = int(np.mean(ifa_list))
-    ifa_median = int(np.median(ifa_list))
+
+    ifa_mean = -1 if len(ifa_list) == 0 else int(np.mean(ifa_list))
+    ifa_median = -1 if len(ifa_list) == 0 else int(np.median(ifa_list))
     ifa = ','.join([str(i) for i in ifa_list])
 
     # ################################# 计算排序指标 MRR MAP ###########################################
@@ -127,8 +134,8 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
                     break
         _map += ap / k
 
-    _mrr /= n
-    _map /= n
+    _mrr = -1 if n == 0 else _mrr / n
+    _map = -1 if n == 0 else _map / n
 
     print('recall\tFAR\td2h\tMCC\tCE\tr_20%\tIFA_avg\tIFA_med\tMRR\tMAP')
     print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\t%.3f\t%.3f\n' %

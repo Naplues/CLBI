@@ -15,16 +15,20 @@ simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
 
+threshold = 50
+
 root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 file_level_path = root_path + '/Dataset/File-level/'
 line_level_path = root_path + '/Dataset/Line-level/'
-cp_result_path = root_path + '/Result/CP/Simple/'
-wp_result_path = root_path + '/Result/WP/Simple/'
+cp_result_path = root_path + '/Result/CP/Simple_' + str(threshold) + '/'
+wp_result_path = root_path + '/Result/WP/Simple_' + str(threshold) + '/'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
 
-make_path(cp_result_path)
-make_path(wp_result_path)
+
+def init():
+    make_path(cp_result_path)
+    make_path(wp_result_path)
 
 
 # 版本内预测实验
@@ -36,7 +40,7 @@ def within_release_prediction(proj, num_iter=10, num_folds=10):
     :param num_folds:折数 默认 10
     :return:
     """
-
+    make_path(wp_result_path + proj + '/')
     log = '=' * 10 + ' Within-release prediction for ' + proj + ' ' + '=' * 60
     print(log[:60])
     # 声明储存预测结果变量
@@ -49,7 +53,7 @@ def within_release_prediction(proj, num_iter=10, num_folds=10):
     mcc_list = []
 
     # Line-level指标
-    performance = 'Iter-Fold,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
+    performance = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
     # 读取数据
     text, text_lines, labels, filenames = read_file_level_dataset(proj)
     # 重复10次实验
@@ -60,7 +64,6 @@ def within_release_prediction(proj, num_iter=10, num_folds=10):
         fold = 0
         for train_index, test_index in ss.split(text, labels):
             print('=' * 10 + ' Running fold ' + str(fold) + ' ' + '=' * 10)
-            fold += 1
             # 1. 取出每折原始数据
             train_text = np.array(text)[train_index]
             train_label = np.array(labels)[train_index]
@@ -89,16 +92,26 @@ def within_release_prediction(proj, num_iter=10, num_folds=10):
             mcc_list.append(metrics.matthews_corrcoef(test_labels, test_predictions))
 
             # 5. 解释代码行级别的缺陷概率
-            out_file = wp_result_path + 'with_predictions_' + proj + str(it) + '_line_risk_ranks.pk'
-            simple(proj, vector, test_text_lines, test_filename, test_predictions, out_file)
 
+            out_file = wp_result_path + proj + '/wr_' + str(it) + '_' + str(fold) + '_line_risk_ranks.pk'
+            # 如果模型的结果已经存在直接进行评估, 否则重新进行预测并评估
+            if os.path.exists(out_file):
+                with open(out_file, 'rb') as file:
+                    data = pickle.load(file)
+                    # with open(root_path + '/Result/LineDP/cr_line_level_ranks_' + test_proj + '.pk',  'rb') as f:
+                    # cut_data = pickle.load(f) cut_data[1], cut_data[2]
+                    performance += evaluation(proj, data[0], data[1], data[2], data[3], data[4])
+            else:
+                performance += simple(proj, vector, test_text_lines, test_filename, test_predictions, out_file)
+
+            fold += 1
     # 将行级别的性能评估结果写入文件
-    with open(wp_result_path + 'wr_line_level_evaluation_' + proj + '.csv', 'w') as file:
+    with open(wp_result_path + proj + '/wr_line_level_evaluation_' + '.csv', 'w') as file:
         file.write(performance)
 
     # 打印平均结果
     print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
-    with open(wp_result_path + 'within_predictions_' + proj + '.pk', 'wb') as file:
+    with open(wp_result_path + proj + '/within_release.pk', 'wb') as file:
         pickle.dump([test_list, prediction_list, precision_list, recall_list, f1_list, mcc_list], file)
 
 
@@ -193,8 +206,6 @@ def simple(proj, vector, test_text_lines, test_filename, test_predictions, out_f
 
     # 预测值为有缺陷的文件的索引
     defect_prone_file_indices = np.array([index[0] for index in np.argwhere(test_predictions == 1)])
-    # 所有的测试文件
-    # defect_prone_file_indices = np.array([index for index in range(len(test_predictions))])
 
     # 文本分词器
     tokenizer = vector.build_tokenizer()
@@ -215,13 +226,33 @@ def simple(proj, vector, test_text_lines, test_filename, test_predictions, out_f
         hit_count = np.array([.0] * len(target_file_lines))
         for index in range(len(target_file_lines)):
             tokens_in_line = tokenizer(target_file_lines[index])
-            #  考虑调用深度和单词数
-            hit_count[index] = len(tokens_in_line) * call_depth(target_file_lines[index])
-            if 'return' in tokens_in_line \
-                    or 'break' in tokens_in_line \
-                    or 'continue' in tokens_in_line \
-                    or 'do' in tokens_in_line:
-                hit_count[index] += len(tokens_in_line) * 1  # 1
+            if len(tokens_in_line) == 0:
+                hit_count[index] = 0
+            else:
+                hit_count[index] = len(tokens_in_line) * call_depth(target_file_lines[index]) + 1
+
+            if 'for' in tokens_in_line:
+                hit_count[index] *= 2
+            if 'while' in tokens_in_line:
+                hit_count[index] *= 2
+            if 'do' in tokens_in_line:
+                hit_count[index] *= 2
+
+            if 'if' in tokens_in_line:
+                hit_count[index] *= 2
+            if 'else' in tokens_in_line:
+                hit_count[index] *= 2
+            if 'switch' in tokens_in_line:
+                hit_count[index] *= 2
+            if 'case' in tokens_in_line:
+                hit_count[index] *= 2
+
+            if 'continue' in tokens_in_line:
+                hit_count[index] *= 2
+            if 'break' in tokens_in_line:
+                hit_count[index] *= 2
+            if 'return' in tokens_in_line:
+                hit_count[index] *= 2
 
         # ############################ 重点,怎么给每行赋一个缺陷值 ################################
 
@@ -253,7 +284,7 @@ def simple(proj, vector, test_text_lines, test_filename, test_predictions, out_f
         # 20% effort (i.e., LOC)
         effort_cf_dict[target_file_name] = int(.2 * len(target_file_lines))
         # 设置分类切分点: 默认前50%
-        defect_cf_dict[target_file_name] = int(.5 * len(target_file_lines))
+        defect_cf_dict[target_file_name] = int(threshold / 100.0 * len(target_file_lines))
 
     dump_result(out_file, [oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict])
     return evaluation(proj, oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict)
@@ -261,29 +292,36 @@ def simple(proj, vector, test_text_lines, test_filename, test_predictions, out_f
 
 # ################# 运行版本内预测实验 ###################
 def run_within_release_prediction():
+    wp_result_path = root_path + '/Result/WP/Simple_' + str(threshold) + '/'
+    init()
     for project in get_project_list(file_level_path):
         within_release_prediction(proj=project, num_iter=10, num_folds=10)
 
 
 # ################# 运行版本间预测实验 ###################
 def run_cross_release_prediction():
-    release_list = get_project_list(file_level_path)
-    projects_dict = {}
-    for release in release_list:
-        project = release.split('-')[0]
-        if project not in projects_dict:
-            projects_dict[project] = [release.replace(file_level_path_suffix, '')]
-        else:
-            projects_dict[project].append(release.replace(file_level_path_suffix, ''))
-    for project, releases in projects_dict.items():
-        cross_release_prediction(proj=project, releases_list=releases)
+    thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+    for cur in thresholds:
+        threshold = cur
+        cp_result_path = root_path + '/Result/CP/Simple_' + str(threshold) + '/'
+        init()
 
-    # 组合评估结果文件
-    combine_results(cp_result_path)
+        release_list = get_project_list(file_level_path)
+        projects_dict = {}
+        for release in release_list:
+            project = release.split('-')[0]
+            if project not in projects_dict:
+                projects_dict[project] = [release.replace(file_level_path_suffix, '')]
+            else:
+                projects_dict[project].append(release.replace(file_level_path_suffix, ''))
+        for project, releases in projects_dict.items():
+            cross_release_prediction(proj=project, releases_list=releases)
+
+        # 组合评估结果文件
+        combine_results(cp_result_path)
 
 
 if __name__ == '__main__':
     # 运行版本内预测实验
-    # run_within_release_prediction()
+    run_within_release_prediction()
     # 运行版本间预测实验
-    run_cross_release_prediction()
