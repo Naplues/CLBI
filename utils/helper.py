@@ -19,20 +19,41 @@ file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
 
 
-# 读取项目列表,去掉后缀
-def get_project_list(folder):
+def get_project_list():
+    """
+    返回项目名-版本号列表 e.g., activemq-5.0.0
+    :return:
+    """
     # 按照时间排好顺序的releases
     return [  # 'activemq-5.0.0', 'activemq-5.1.0', 'activemq-5.2.0', 'activemq-5.3.0', 'activemq-5.8.0',
         # 'camel-1.4.0', 'camel-2.9.0', 'camel-2.10.0', 'camel-2.11.0',
         # 'derby-10.2.1.6', 'derby-10.3.1.4', 'derby-10.5.1.1',
         # 'groovy-1_5_7', 'groovy-1_6_BETA_1', 'groovy-1_6_BETA_2',
         # 'hbase-0.94.0', 'hbase-0.95.0', 'hbase-0.95.2',
-        'hive-0.9.0', 'hive-0.10.0', 'hive-0.12.0',
+        # 'hive-0.9.0', 'hive-0.10.0', 'hive-0.12.0',
         'jruby-1.1', 'jruby-1.4.0', 'jruby-1.5.0', 'jruby-1.7.0.preview1',
         'lucene-2.3.0', 'lucene-2.9.0', 'lucene-3.0.0', 'lucene-3.1',
         'wicket-1.3.0-incubating-beta-1', 'wicket-1.3.0-beta2', 'wicket-1.5.3']
 
     # return [file.replace(file_level_path_suffix, '') for file in os.listdir(folder)]
+
+
+def get_project_releases_dict():
+    """
+    get project releases dict: dict[project] = [releases]
+    :return:
+    """
+    release_list = get_project_list()
+
+    project_releases_dict = {}
+    for release in release_list:
+        project = release.split('-')[0]
+        if project not in project_releases_dict:
+            project_releases_dict[project] = [release]
+        else:
+            project_releases_dict[project].append(release)
+
+    return project_releases_dict
 
 
 # 读取文件级别的数据集信息
@@ -103,9 +124,15 @@ def read_line_level_dataset(proj):
 
 
 # 保存结果
-def dump_result(out_file, data):
+def dump_pk_result(out_file, data):
     with open(out_file, 'wb') as file:
         pickle.dump(data, file)
+
+
+# 保存结果
+def save_csv_result(out_file, data):
+    with open(out_file, 'w') as file:
+        file.write(data)
 
 
 # 将行级别的评估结果组合在一个文件中
@@ -138,29 +165,6 @@ def combine_results(path):
 
 def parse_results(proj, path):
     pass
-
-
-# 嵌套深度相加
-def call_depth(statement):
-    statement = statement.strip('\"')
-    score = 0
-    depth = 0
-    for char in statement:
-        if char == '(':
-            depth += 1
-            score += depth
-        elif char == ')':
-            depth -= 1
-    return score
-
-
-def call_number(statement):
-    statement = statement.strip('\"')
-    score = 0
-    for char in statement:
-        if char == '(':
-            score += 1
-    return score
 
 
 def make_path(path):

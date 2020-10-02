@@ -1,9 +1,9 @@
 # -*- coding:utf-8 -*-
 
 import warnings
-from helper import *
+from utils.helper import *
 from sklearn import metrics
-from evaluation import evaluation
+from utils.eval import evaluation
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
@@ -225,7 +225,7 @@ def simple(proj, vector, test_text_lines, test_filename, test_predictions, out_f
         # 设置分类切分点: 默认前50%
         defect_cf_dict[target_file_name] = int(.5 * len(target_file_lines))
 
-    dump_result(out_file, [oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict])
+    dump_pk_result(out_file, [oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict])
     return evaluation(proj, oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict)
 
 
