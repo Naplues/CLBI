@@ -15,28 +15,23 @@ simplefilter(action='ignore', category=FutureWarning)
 root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 
 
-# 版本间预测实验
-def cross_release_prediction(proj, releases, model, th, path):
+def predict_cross_release(proj, releases, model, th, path):
     """
-    版本间预测
+    Predict the results under cross release experiments
     :param proj: target project
     :param releases:
-    :param model A prediction model
-    :param th
-    :param path
+    :param model: A prediction model, AccessModel or LineDPModel
+    :param th:
+    :param path:
     :return:
     """
-
-    log = '=' * 10 + ' Cross-release prediction for ' + proj + ' ' + '=' * 60
-    print(log[:60])
+    print(f'========== Cross-release prediction for {proj} =================================================='[:60])
     # 声明储存预测结果变量
     oracle_list = []
     prediction_list = []
     # 声明储存评估指标变量
     mcc_list = []
 
-    # Line-level指标
-    performance = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
     print("Training set\t ===> \tTest set.")
     for i in range(len(releases) - 1):
         # 1. 读取数据 训练版本的索引为 i, 测试版本的索引为 i + 1
@@ -60,20 +55,41 @@ def cross_release_prediction(proj, releases, model, th, path):
         prediction_list.append(test_predictions)
         mcc_list.append(metrics.matthews_corrcoef(test_label, test_predictions))
 
-        # 5. 解释代码行级别的缺陷概率
-        out_file = path + 'cr_line_level_ranks_' + test_proj + '.pk'
+        # 5. 预测代码行级别的缺陷概率
+        out_file = path + 'cr_line_level_result_' + test_proj + '.pk'
+        model(test_proj, vector, clf, test_text_lines, test_filename, test_predictions, out_file, th)
 
-        # 如果模型的结果已经存在直接进行评估, 否则重新进行预测并评估
-        if os.path.exists(out_file):
+    dump_pk_result(path + 'cr_file_level_result_' + proj + '.pk', [oracle_list, prediction_list, mcc_list])
+    print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
+
+
+def eval_cross_release(proj, releases, path, depend=False):
+    """
+    Evaluate the results under cross release experiments
+    :param proj: Target project
+    :param releases: The release list in target project
+    :param path: The path of result .pk file
+    :param depend: Whether depending the results of LineDP
+    :return:
+    """
+    performance = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
+    for i in range(len(releases) - 1):
+        test_proj = releases[i + 1]
+        print(f"Target release:\t{test_proj} ======================================================="[:80])
+        out_file = path + 'cr_line_level_result_' + test_proj + '.pk'
+        dep_file = root_path + '/Result/CP/LineDPModel_50/cr_line_level_result_' + test_proj + '.pk'
+        try:
             with open(out_file, 'rb') as file:
                 data = pickle.load(file)
-                # with open(root_path + '/Result/LineDP/cr_line_level_ranks_' + test_proj + '.pk',  'rb') as f:
-                # cut_data = pickle.load(f) cut_data[1], cut_data[2]
-                performance += evaluation(proj, data[0], data[1], data[2], data[3], data[4])
-        else:
-            performance += model(test_proj, vector, clf, test_text_lines, test_filename, test_predictions, out_file, th)
+                if depend:
+                    with open(dep_file, 'rb') as f:
+                        dep_data = pickle.load(f)
+                        data[1], data[2] = dep_data[1], dep_data[2]
 
-    # 输出行级别的结果
-    save_csv_result(path + 'cr_line_level_evaluation_' + proj + '.csv', performance)
-    dump_pk_result(path + 'cr_file_level_evaluation_' + proj + '.pk', [oracle_list, prediction_list, mcc_list])
-    print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
+                performance += evaluation(proj, data[0], data[1], data[2], data[3], data[4])
+        except IOError:
+            print('Error! Not found result file %s or %s' % (out_file, dep_file))
+            return
+
+    # Output the evaluation results for line level experiments
+    save_csv_result(path + 'line_level_evaluation_' + proj + '.csv', performance)

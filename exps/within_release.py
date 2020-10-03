@@ -17,7 +17,7 @@ root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 
 
 # 版本内预测实验设计
-def within_release_prediction(proj, num_iter=10, num_folds=10, model=None, th=50, path=''):
+def predict_within_release(proj, num_iter=10, num_folds=10, model=None, th=50, path=''):
     """
     版本内预测
     :param proj: 项目版本名
@@ -28,21 +28,18 @@ def within_release_prediction(proj, num_iter=10, num_folds=10, model=None, th=50
     :param path
     :return:
     """
-    make_path(path + proj + '/')
-    log = '=' * 10 + ' Within-release prediction for ' + proj + ' ' + '=' * 60
-    print(log[:60])
+    make_path(f'{path}{proj}/')
+    print(f'========== Cross-release prediction for {proj} =================================================='[:60])
     # 声明储存预测结果变量
     oracle_list = []
     prediction_list = []
     mcc_list = []
 
-    # Line-level指标
-    performance = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
     # 读取数据
     text, text_lines, labels, filenames = read_file_level_dataset(proj)
     # 重复10次实验
     for it in range(num_iter):
-        print('=' * 20 + ' Running iter ' + str(it) + ' ' + '=' * 20)
+        print('=' * 20 + ' Running iter ' + str(it) + ' for ' + proj + '=' * 20)
         # 定义10-折划分设置
         ss = StratifiedKFold(n_splits=num_folds, shuffle=True, random_state=it)
         fold = 0
@@ -73,19 +70,45 @@ def within_release_prediction(proj, num_iter=10, num_folds=10, model=None, th=50
             mcc_list.append(metrics.matthews_corrcoef(test_labels, test_predictions))
 
             # 5. 解释代码行级别的缺陷概率
-            out_file = path + proj + '/wr_' + str(it) + '_' + str(fold) + '_line_risk_ranks.pk'
-            # 如果模型的结果已经存在直接进行评估, 否则重新进行预测并评估
-            if os.path.exists(out_file):
+            out_file = '%s%s/wr_%d_%d.pk' % (path, proj, it, fold)
+            model(proj, vector, test_text_lines, test_filename, test_predictions, out_file, th)
+            fold += 1
+    dump_pk_result(path + proj + '/wr_file_level_result.pk', [oracle_list, prediction_list, mcc_list])
+    print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
+
+
+def eval_within_release(proj, num_iter=10, num_folds=10, path='', depend=False):
+    """
+    Evaluate the results under cross release experiments
+    :param proj:
+    :param num_iter:
+    :param num_folds:
+    :param path:
+    :param depend:
+    :return:
+    """
+    performance = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
+    text, text_lines, labels, filenames = read_file_level_dataset(proj)
+    for it in range(num_iter):
+        print('=' * 20 + ' Running iter ' + str(it) + ' for ' + proj + '=' * 20)
+        # 定义10-折划分设置
+        ss = StratifiedKFold(n_splits=num_folds, shuffle=True, random_state=it)
+        fold = 0
+        for train_index, test_index in ss.split(text, labels):
+            out_file = '%s%s/wr_%d_%d.pk' % (path, proj, it, fold)
+            dep_file = '%s/Result/WP/LineDPModel_50/%s/wr_%d_%d.pk' % (root_path, proj, it, fold)
+            try:
                 with open(out_file, 'rb') as file:
                     data = pickle.load(file)
-                    # with open(root_path + '/Result/LineDP/cr_line_level_ranks_' + test_proj + '.pk',  'rb') as f:
-                    # cut_data = pickle.load(f) cut_data[1], cut_data[2]
-                    performance += evaluation(proj, data[0], data[1], data[2], data[3], data[4])
-            else:
-                performance += model(proj, vector, test_text_lines, test_filename, test_predictions, out_file, th)
+                    if depend:
+                        with open(dep_file, 'rb') as f:
+                            dep_data = pickle.load(f)
+                            data[1], data[2] = dep_data[1], dep_data[2]
 
-            fold += 1
-    # 将行级别的性能评估结果写入文件
-    save_csv_result(path + proj + '/wr_line_level_evaluation_.csv', performance)
-    dump_pk_result(path + proj + '/within_release.pk', [oracle_list, prediction_list, mcc_list])
-    print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
+                    performance += evaluation(proj, data[0], data[1], data[2], data[3], data[4])
+            except IOError:
+                print('Error! Not found result file %s or %s' % (out_file, dep_file))
+                return
+
+    # Output the evaluation results for line level experiments
+    save_csv_result(path + 'line_level_evaluation_' + proj + '.csv', performance)

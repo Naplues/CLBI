@@ -25,15 +25,15 @@ def get_project_list():
     :return:
     """
     # 按照时间排好顺序的releases
-    return [  # 'activemq-5.0.0', 'activemq-5.1.0', 'activemq-5.2.0', 'activemq-5.3.0', 'activemq-5.8.0',
-        # 'camel-1.4.0', 'camel-2.9.0', 'camel-2.10.0', 'camel-2.11.0',
-        # 'derby-10.2.1.6', 'derby-10.3.1.4', 'derby-10.5.1.1',
-        # 'groovy-1_5_7', 'groovy-1_6_BETA_1', 'groovy-1_6_BETA_2',
-        # 'hbase-0.94.0', 'hbase-0.95.0', 'hbase-0.95.2',
-        # 'hive-0.9.0', 'hive-0.10.0', 'hive-0.12.0',
-        'jruby-1.1', 'jruby-1.4.0', 'jruby-1.5.0', 'jruby-1.7.0.preview1',
-        'lucene-2.3.0', 'lucene-2.9.0', 'lucene-3.0.0', 'lucene-3.1',
-        'wicket-1.3.0-incubating-beta-1', 'wicket-1.3.0-beta2', 'wicket-1.5.3']
+    return ['activemq-5.0.0', 'activemq-5.1.0', 'activemq-5.2.0', 'activemq-5.3.0', 'activemq-5.8.0',
+            'camel-1.4.0', 'camel-2.9.0', 'camel-2.10.0', 'camel-2.11.0',
+            'derby-10.2.1.6', 'derby-10.3.1.4', 'derby-10.5.1.1',
+            'groovy-1_5_7', 'groovy-1_6_BETA_1', 'groovy-1_6_BETA_2',
+            'hbase-0.94.0', 'hbase-0.95.0', 'hbase-0.95.2',
+            'hive-0.9.0', 'hive-0.10.0', 'hive-0.12.0',
+            'jruby-1.1', 'jruby-1.4.0', 'jruby-1.5.0', 'jruby-1.7.0.preview1',
+            'lucene-2.3.0', 'lucene-2.9.0', 'lucene-3.0.0', 'lucene-3.1',
+            'wicket-1.3.0-incubating-beta-1', 'wicket-1.3.0-beta2', 'wicket-1.5.3']
 
     # return [file.replace(file_level_path_suffix, '') for file in os.listdir(folder)]
 
@@ -140,6 +140,7 @@ def combine_results(path):
     """
     将行级别的评估结果组合在一个文件中
     :param path:
+    :param proj
     :return:
     """
     projects = ['activemq', 'camel', 'derby', 'groovy', 'hbase', 'hive', 'jruby', 'lucene', 'wicket']
@@ -147,7 +148,7 @@ def combine_results(path):
     text_normal = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
     text_worst = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
     for proj in projects:
-        with open(path + 'cr_line_level_evaluation_' + proj + '.csv', 'r') as file:
+        with open(path + 'line_level_evaluation_' + proj + '.csv', 'r') as file:
             count = 0
             for line in file.readlines()[1:]:
                 if count % 2 == 0:
@@ -156,11 +157,10 @@ def combine_results(path):
                     text_worst += line
                 count += 1
 
-        with open(path + 'result_normal.csv', 'w') as file:
-            file.write(text_normal)
-        with open(path + 'result_worst.csv', 'w') as file:
-            file.write(text_worst)
-    print('Finish!')
+    with open(path + 'result_normal.csv', 'w') as file:
+        file.write(text_normal)
+    with open(path + 'result_worst.csv', 'w') as file:
+        file.write(text_worst)
 
 
 def parse_results(proj, path):
@@ -194,7 +194,3 @@ def dataset_statistics():
         tokens = len(vector.vocabulary_)
         res = (proj, file_num, bug_num, file_ratio, loc, bug_lines, line_ratio, tokens)
         print("%s, %d, %d, %f, %d, %d, %f, %d" % res)
-
-
-if __name__ == '__main__':
-    print(call_depth(''))
