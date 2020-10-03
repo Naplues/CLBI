@@ -19,7 +19,7 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, worst_list_dict, defect
     """
     r_normal = 'normal,' + evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
     r_worst = 'worst,' + evaluator(proj, oracle_line_dict, worst_list_dict, defect_cut_off_dict, effort_cut_off_dict)
-    return r_normal + r_worst
+    return f'{r_normal}{r_worst}'
 
 
 # 评估行级别的分类效果
@@ -138,8 +138,6 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
     _map = -1 if n == 0 else _map / n
 
     print('recall\tFAR\td2h\tMCC\tCE\tr_20%\tIFA_avg\tIFA_med\tMRR\tMAP')
-    print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\t%.3f\t%.3f\n' %
-          (recall, far, d2h, mcc, ce, recall_20, ifa_mean, ifa_median, _mrr, _map))
+    print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\n' % (recall, far, d2h, mcc, ce, recall_20, ifa_mean, ifa_median))
 
-    return '%s,%f,%f,%f,%.f,%f,%f,%d,%d,%f,%f,%s\n' % (
-        proj, recall, far, d2h, mcc, ce, recall_20, ifa_mean, ifa_median, _mrr, _map, ifa)
+    return f'{proj},{recall},{far},{d2h},{mcc},{ce},{recall_20},{ifa_mean},{ifa_median},{_mrr},{_map},{ifa}\n'

@@ -56,10 +56,10 @@ def predict_cross_release(proj, releases, model, th, path):
         mcc_list.append(metrics.matthews_corrcoef(test_label, test_predictions))
 
         # 5. 预测代码行级别的缺陷概率
-        out_file = path + 'cr_line_level_result_' + test_proj + '.pk'
+        out_file = f'{path}cr_line_level_result_{test_proj}.pk'
         model(test_proj, vector, clf, test_text_lines, test_filename, test_predictions, out_file, th)
 
-    dump_pk_result(path + 'cr_file_level_result_' + proj + '.pk', [oracle_list, prediction_list, mcc_list])
+    dump_pk_result(f'{path}cr_file_level_result_{proj}.pk', [oracle_list, prediction_list, mcc_list])
     print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
 
 
@@ -76,8 +76,8 @@ def eval_cross_release(proj, releases, path, depend=False):
     for i in range(len(releases) - 1):
         test_proj = releases[i + 1]
         print(f"Target release:\t{test_proj} ======================================================="[:80])
-        out_file = path + 'cr_line_level_result_' + test_proj + '.pk'
-        dep_file = root_path + '/Result/CP/LineDPModel_50/cr_line_level_result_' + test_proj + '.pk'
+        out_file = f'{path}cr_line_level_result_{test_proj}.pk'
+        dep_file = f'{root_path}/Result/CP/LineDPModel_50/cr_line_level_result_{test_proj}.pk'
         try:
             with open(out_file, 'rb') as file:
                 data = pickle.load(file)
@@ -92,4 +92,4 @@ def eval_cross_release(proj, releases, path, depend=False):
             return
 
     # Output the evaluation results for line level experiments
-    save_csv_result(path + 'line_level_evaluation_' + proj + '.csv', performance)
+    save_csv_result(f'{path}line_level_evaluation_{proj}.csv', performance)

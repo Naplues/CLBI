@@ -75,28 +75,30 @@ def AccessModel(proj, vector, clf, test_text_lines, test_filename, test_predicti
             else:
                 hit_count[index] = len(tokens_in_line) * call_depth(target_file_lines[index]) + 1
 
+            weight = 2
+
             if 'for' in tokens_in_line:
-                hit_count[index] *= 2
+                hit_count[index] *= weight
             if 'while' in tokens_in_line:
-                hit_count[index] *= 2
+                hit_count[index] *= weight
             if 'do' in tokens_in_line:
-                hit_count[index] *= 2
+                hit_count[index] *= weight
 
             if 'if' in tokens_in_line:
-                hit_count[index] *= 2
+                hit_count[index] *= weight
             if 'else' in tokens_in_line:
-                hit_count[index] *= 2
+                hit_count[index] *= weight
             if 'switch' in tokens_in_line:
-                hit_count[index] *= 2
+                hit_count[index] *= weight
             if 'case' in tokens_in_line:
-                hit_count[index] *= 2
+                hit_count[index] *= weight
 
             if 'continue' in tokens_in_line:
-                hit_count[index] *= 2
+                hit_count[index] *= weight
             if 'break' in tokens_in_line:
-                hit_count[index] *= 2
+                hit_count[index] *= weight
             if 'return' in tokens_in_line:
-                hit_count[index] *= 2
+                hit_count[index] *= weight
 
         # ############################ 重点,怎么给每行赋一个缺陷值 ################################
 

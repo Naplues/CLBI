@@ -5,11 +5,7 @@ from utils.eval import evaluation
 from lime.lime_text import LimeTextExplainer
 from sklearn.pipeline import make_pipeline
 
-# 全局变量设置
 random_seed = 0  # random seed is set as 0-9
-
-cp_result_path = root_path + '/Result/CP/LineDP_' + str(random_seed) + '/'
-wp_result_path = root_path + '/Result/WP/LineDP_' + str(random_seed) + '/'
 
 
 # OK 进行代码行级别的排序

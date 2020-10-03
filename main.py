@@ -21,11 +21,11 @@ def run_within_release_prediction(prediction_model, mode=Predict):
     threshold = 50
     wp_result_path = '%s/Result/WP/%s_%d/' % (root_path, getattr(prediction_model, '__name__'), threshold)
     make_path(wp_result_path)
-    for project in get_project_list():
+    for project_release in get_project_release_list():
         if mode == Predict:
-            predict_within_release(project, 10, 10, prediction_model, threshold, wp_result_path)
+            predict_within_release(project_release, 10, 10, prediction_model, threshold, wp_result_path)
         else:
-            eval_within_release(project, 10, 10, wp_result_path)
+            eval_within_release(project_release, 10, 10, wp_result_path)
     if mode == Eval:
         combine_results(wp_result_path)
 

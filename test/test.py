@@ -191,7 +191,7 @@ def line_dp(proj, vector, classifier, test_text_lines, test_filename, test_predi
 
 # ################# 运行版本间预测实验 ###################
 def run_cross_release_prediction():
-    release_list = get_project_list(file_level_path)
+    release_list = get_project_release_list(file_level_path)
     projects_dict = {}
     for release in release_list:
         project = release.split('-')[0]

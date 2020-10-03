@@ -17,10 +17,10 @@ root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 
 
 # 版本内预测实验设计
-def predict_within_release(proj, num_iter=10, num_folds=10, model=None, th=50, path=''):
+def predict_within_release(proj_release, num_iter=10, num_folds=10, model=None, th=50, path=''):
     """
     版本内预测
-    :param proj: 项目版本名
+    :param proj_release: Target project release
     :param num_iter: 重复次数 默认10
     :param num_folds:折数 默认 10
     :param model
@@ -28,23 +28,23 @@ def predict_within_release(proj, num_iter=10, num_folds=10, model=None, th=50, p
     :param path
     :return:
     """
-    make_path(f'{path}{proj}/')
-    print(f'========== Cross-release prediction for {proj} =================================================='[:60])
+    make_path(f'{path}{proj_release}/')
+    print(f'========== Cross-release prediction for {proj_release} =============================================='[:60])
     # 声明储存预测结果变量
     oracle_list = []
     prediction_list = []
     mcc_list = []
 
     # 读取数据
-    text, text_lines, labels, filenames = read_file_level_dataset(proj)
+    text, text_lines, labels, filenames = read_file_level_dataset(proj_release)
     # 重复10次实验
     for it in range(num_iter):
-        print('=' * 20 + ' Running iter ' + str(it) + ' for ' + proj + '=' * 20)
+        print(f'==================== Running iter {it} for {proj_release} ====================')
         # 定义10-折划分设置
         ss = StratifiedKFold(n_splits=num_folds, shuffle=True, random_state=it)
         fold = 0
         for train_index, test_index in ss.split(text, labels):
-            print('=' * 10 + ' Running fold ' + str(fold) + ' ' + '=' * 10)
+            print(f'========== Running fold {fold} ==========')
             # 1. 取出每折原始数据
             train_text = np.array(text)[train_index]
             train_label = np.array(labels)[train_index]
@@ -70,17 +70,17 @@ def predict_within_release(proj, num_iter=10, num_folds=10, model=None, th=50, p
             mcc_list.append(metrics.matthews_corrcoef(test_labels, test_predictions))
 
             # 5. 解释代码行级别的缺陷概率
-            out_file = '%s%s/wr_%d_%d.pk' % (path, proj, it, fold)
-            model(proj, vector, test_text_lines, test_filename, test_predictions, out_file, th)
+            out_file = '%s%s/wr_%d_%d.pk' % (path, proj_release, it, fold)
+            model(proj_release, vector, test_text_lines, test_filename, test_predictions, out_file, th)
             fold += 1
-    dump_pk_result(path + proj + '/wr_file_level_result.pk', [oracle_list, prediction_list, mcc_list])
+    dump_pk_result(f'{path}{proj_release}/wr_file_level_result.pk', [oracle_list, prediction_list, mcc_list])
     print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
 
 
-def eval_within_release(proj, num_iter=10, num_folds=10, path='', depend=False):
+def eval_within_release(proj_release, num_iter=10, num_folds=10, path='', depend=False):
     """
     Evaluate the results under cross release experiments
-    :param proj:
+    :param proj_release:
     :param num_iter:
     :param num_folds:
     :param path:
@@ -88,15 +88,15 @@ def eval_within_release(proj, num_iter=10, num_folds=10, path='', depend=False):
     :return:
     """
     performance = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
-    text, text_lines, labels, filenames = read_file_level_dataset(proj)
+    text, text_lines, labels, filenames = read_file_level_dataset(proj_release)
     for it in range(num_iter):
-        print('=' * 20 + ' Running iter ' + str(it) + ' for ' + proj + '=' * 20)
+        print(f'==================== Running iter {it} for {proj_release} ====================')
         # 定义10-折划分设置
         ss = StratifiedKFold(n_splits=num_folds, shuffle=True, random_state=it)
         fold = 0
         for train_index, test_index in ss.split(text, labels):
-            out_file = '%s%s/wr_%d_%d.pk' % (path, proj, it, fold)
-            dep_file = '%s/Result/WP/LineDPModel_50/%s/wr_%d_%d.pk' % (root_path, proj, it, fold)
+            out_file = '%s%s/wr_%d_%d.pk' % (path, proj_release, it, fold)
+            dep_file = '%s/Result/WP/LineDPModel_50/%s/wr_%d_%d.pk' % (root_path, proj_release, it, fold)
             try:
                 with open(out_file, 'rb') as file:
                     data = pickle.load(file)
@@ -105,10 +105,10 @@ def eval_within_release(proj, num_iter=10, num_folds=10, path='', depend=False):
                             dep_data = pickle.load(f)
                             data[1], data[2] = dep_data[1], dep_data[2]
 
-                    performance += evaluation(proj, data[0], data[1], data[2], data[3], data[4])
+                    performance += evaluation(proj_release, data[0], data[1], data[2], data[3], data[4])
             except IOError:
                 print('Error! Not found result file %s or %s' % (out_file, dep_file))
                 return
 
     # Output the evaluation results for line level experiments
-    save_csv_result(path + 'line_level_evaluation_' + proj + '.csv', performance)
+    save_csv_result(f'{path}line_level_evaluation_{proj_release}.csv', performance)

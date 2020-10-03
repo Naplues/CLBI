@@ -274,13 +274,13 @@ def simple(proj, vector, test_text_lines, test_filename, test_predictions, out_f
 
 # ################# 运行版本内预测实验 ###################
 def run_within_release_prediction():
-    for project in get_project_list(file_level_path):
+    for project in get_project_release_list(file_level_path):
         within_release_prediction(proj=project, num_iter=10, num_folds=10)
 
 
 # ################# 运行版本间预测实验 ###################
 def run_cross_release_prediction():
-    release_list = get_project_list(file_level_path)
+    release_list = get_project_release_list(file_level_path)
     projects_dict = {}
     for release in release_list:
         project = release.split('-')[0]

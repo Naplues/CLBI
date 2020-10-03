@@ -12,14 +12,14 @@ simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
 root_path = r'C://Users/GZQ/Desktop/CLDP_data/'
-file_level_path = root_path + 'Dataset/File-level/'
-line_level_path = root_path + 'Dataset/Line-level/'
-result_path = root_path + 'Result/'
+file_level_path = f'{root_path}Dataset/File-level/'
+line_level_path = f'{root_path}Dataset/Line-level/'
+result_path = f'{root_path}Result/'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
 
 
-def get_project_list():
+def get_project_release_list():
     """
     返回项目名-版本号列表 e.g., activemq-5.0.0
     :return:
@@ -43,7 +43,7 @@ def get_project_releases_dict():
     get project releases dict: dict[project] = [releases]
     :return:
     """
-    release_list = get_project_list()
+    release_list = get_project_release_list()
 
     project_releases_dict = {}
     for release in release_list:
@@ -148,7 +148,7 @@ def combine_results(path):
     text_normal = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
     text_worst = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
     for proj in projects:
-        with open(path + 'line_level_evaluation_' + proj + '.csv', 'r') as file:
+        with open(f'{path}line_level_evaluation_{proj}.csv', 'r') as file:
             count = 0
             for line in file.readlines()[1:]:
                 if count % 2 == 0:
@@ -157,9 +157,9 @@ def combine_results(path):
                     text_worst += line
                 count += 1
 
-    with open(path + 'result_normal.csv', 'w') as file:
+    with open(f'{path}result_normal.csv', 'w') as file:
         file.write(text_normal)
-    with open(path + 'result_worst.csv', 'w') as file:
+    with open(f'{path}result_worst.csv', 'w') as file:
         file.write(text_worst)
 
 
@@ -175,7 +175,7 @@ def make_path(path):
 # 数据集统计信息
 def dataset_statistics():
     print('release name, #files, #buggy files, ratio, #LOC, #buggy LOC, ratio, #tokens')
-    for proj in get_project_list(file_level_path):
+    for proj in get_project_release_list():
         texts, texts_lines, numeric_labels, src_files = read_file_level_dataset(proj)
 
         file_num = len(texts)
