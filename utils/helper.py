@@ -33,7 +33,8 @@ def get_project_release_list():
             'hive-0.9.0', 'hive-0.10.0', 'hive-0.12.0',
             'jruby-1.1', 'jruby-1.4.0', 'jruby-1.5.0', 'jruby-1.7.0.preview1',
             'lucene-2.3.0', 'lucene-2.9.0', 'lucene-3.0.0', 'lucene-3.1',
-            'wicket-1.3.0-incubating-beta-1', 'wicket-1.3.0-beta2', 'wicket-1.5.3']
+            'wicket-1.3.0-incubating-beta-1', 'wicket-1.3.0-beta2', 'wicket-1.5.3'
+            ]
 
     # return [file.replace(file_level_path_suffix, '') for file in os.listdir(folder)]
 
@@ -72,7 +73,7 @@ def read_file_level_dataset(proj):
         src_files = [lines[index].split(',')[0] for index in src_file_indices]
         # 缺陷标记
         string_labels = [lines[index].split(',')[1] for index in src_file_indices]
-        numeric_labels = np.array([1 if label == 'true' else 0 for label in string_labels])
+        numeric_labels = [1 if label == 'true' else 0 for label in string_labels]
 
         # 行级别的文本语料库
         texts_lines = []

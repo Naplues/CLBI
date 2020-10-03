@@ -32,8 +32,8 @@ def run_within_release_prediction(prediction_model, mode=Predict):
 
 # ################# Run cross release prediction experiments ###################
 def run_cross_release_prediction(prediction_model, mode=Predict):
-    thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45]
-    # thresholds = [50]
+    # thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45]
+    thresholds = [50]
     for threshold in thresholds:
         cp_result_path = '%s/Result/CP/%s_%d/' % (root_path, getattr(prediction_model, '__name__'), threshold)
         make_path(cp_result_path)
@@ -48,6 +48,6 @@ def run_cross_release_prediction(prediction_model, mode=Predict):
 
 if __name__ == '__main__':
     # 运行版本内预测实验
-    # run_within_release_prediction(model)
+    run_within_release_prediction(AccessModel, Predict)
     # 运行版本间预测实验
-    run_cross_release_prediction(AccessModel, Predict)
+    # run_cross_release_prediction(LineDPModel, Predict)

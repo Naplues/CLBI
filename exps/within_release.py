@@ -9,6 +9,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_extraction.text import CountVectorizer
 
+from memory_profiler import profile
+
 # 忽略警告信息
 warnings.filterwarnings('ignore')
 simplefilter(action='ignore', category=FutureWarning)
@@ -16,7 +18,7 @@ simplefilter(action='ignore', category=FutureWarning)
 root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 
 
-# 版本内预测实验设计
+@profile
 def predict_within_release(proj_release, num_iter=10, num_folds=10, model=None, th=50, path=''):
     """
     版本内预测
@@ -46,13 +48,13 @@ def predict_within_release(proj_release, num_iter=10, num_folds=10, model=None, 
         for train_index, test_index in ss.split(text, labels):
             print(f'========== Running fold {fold} ==========')
             # 1. 取出每折原始数据
-            train_text = np.array(text)[train_index]
-            train_label = np.array(labels)[train_index]
+            train_text = [text[i] for i in train_index]
+            train_label = [labels[i] for i in train_index]
 
-            test_text = np.array(text)[test_index]
-            test_text_lines = np.array(text_lines)[test_index]
-            test_filename = np.array(filenames)[test_index]
-            test_labels = np.array(labels)[test_index]
+            test_text = [text[i] for i in test_index]
+            test_text_lines = [text_lines[i] for i in test_index]
+            test_filename = [filenames[i] for i in test_index]
+            test_labels = [labels[i] for i in test_index]
 
             # 2. 定义一个矢量器
             vector = CountVectorizer(lowercase=False, min_df=2)
@@ -61,8 +63,8 @@ def predict_within_release(proj_release, num_iter=10, num_folds=10, model=None, 
             test_vtr = vector.transform(test_text)
 
             # 3. 定义 LogisticRegression 分类器进行预测
-            classifier = LogisticRegression().fit(train_vtr, train_label)
-            test_predictions = classifier.predict(test_vtr)
+            clf = LogisticRegression().fit(train_vtr, train_label)
+            test_predictions = clf.predict(test_vtr)
 
             # 4. 评估并储存预测结果极其评估指标
             oracle_list.append(test_labels)
@@ -71,7 +73,7 @@ def predict_within_release(proj_release, num_iter=10, num_folds=10, model=None, 
 
             # 5. 解释代码行级别的缺陷概率
             out_file = '%s%s/wr_%d_%d.pk' % (path, proj_release, it, fold)
-            model(proj_release, vector, test_text_lines, test_filename, test_predictions, out_file, th)
+            model(proj_release, vector, clf, test_text_lines, test_filename, test_predictions, out_file, th)
             fold += 1
     dump_pk_result(f'{path}{proj_release}/wr_file_level_result.pk', [oracle_list, prediction_list, mcc_list])
     print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
