@@ -1,9 +1,9 @@
 # -*- coding:utf-8 -*-
 
 import warnings
-from utils.helper import *
+from src.utils.helper import *
 from sklearn import metrics
-from utils.eval import evaluation
+from src.utils.eval import evaluation
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold

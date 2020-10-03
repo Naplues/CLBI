@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
-from utils.helper import *
-from utils.eval import evaluation
+from src.utils.helper import *
+from src.utils.eval import evaluation
 
 
 # 嵌套深度相加

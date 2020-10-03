@@ -1,15 +1,103 @@
 # -*- coding:utf-8 -*-
 
-from utils.helper import *
-from utils.eval import evaluation
+import warnings
+from src.utils.helper import *
+from sklearn import metrics
+from src.utils.eval import evaluation
+
 from lime.lime_text import LimeTextExplainer
 from sklearn.pipeline import make_pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_extraction.text import CountVectorizer
 
+# 忽略警告信息
+warnings.filterwarnings('ignore')
+simplefilter(action='ignore', category=FutureWarning)
+
+# 全局变量设置
 random_seed = 0  # random seed is set as 0-9
+root_path = r'C://Users/GZQ/Desktop/CLDP_data'
+file_level_path = root_path + '/Dataset/File-level/'
+line_level_path = root_path + '/Dataset/Line-level/'
+cp_result_path = root_path + '/Result/CP/LineDP_t' + str(random_seed) + '/'
+wp_result_path = root_path + '/Result/WP/LineDP_t' + str(random_seed) + '/'
+file_level_path_suffix = '_ground-truth-files_dataset.csv'
+line_level_path_suffix = '_defective_lines_dataset.csv'
+
+make_path(cp_result_path)
+make_path(wp_result_path)
+
+
+# OK 版本间预测实验
+def cross_release_prediction(proj, releases_list):
+    """
+    版本间预测
+    :param proj: 目标项目
+    :param releases_list:
+    :return:
+    """
+    log = '=' * 10 + ' Cross-release prediction for ' + proj + ' ' + '=' * 60
+    print(log[:60])
+    # 声明储存预测结果变量
+    test_list = []
+    prediction_list = []
+    # 声明储存评估指标变量
+    precision_list = []
+    recall_list = []
+    f1_list = []
+    mcc_list = []
+
+    # Line-level指标
+    performance = 'Setting,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
+
+    # 1. 读取数据 训练版本的索引为 i, 测试版本的索引为 i + 1
+    train_proj, test_proj = releases_list[0], releases_list[0]
+    print("%s\t ===> \t%s" % (train_proj, test_proj))
+    #    源码文本列表 源码文本行级别列表 标签列表 文件名称
+    train_text, train_text_lines, train_label, train_filename = read_file_level_dataset(train_proj)
+    test_text, test_text_lines, test_label, test_filename = read_file_level_dataset(test_proj)
+
+    # 2. 定义一个矢量器. 拟合矢量器, 将文本特征转换为数值特征
+    vector = CountVectorizer(lowercase=False, min_df=2)
+    train_vtr = vector.fit_transform(train_text)
+    test_vtr = vector.transform(test_text)
+
+    # 3. 定义 LogisticRegression 分类器, 使用默认设置进行训练和预测
+    clf = LogisticRegression().fit(train_vtr, train_label)
+    test_predictions = clf.predict(test_vtr)
+
+    # 4. 储存文件级别的预测结果和评估指标
+    test_list.append(test_label)
+    prediction_list.append(test_predictions)
+    precision_list.append(metrics.precision_score(test_label, test_predictions))
+    recall_list.append(metrics.recall_score(test_label, test_predictions))
+    f1_list.append(metrics.f1_score(test_label, test_predictions))
+    mcc_list.append(metrics.matthews_corrcoef(test_label, test_predictions))
+
+    # 5. 预测代码行级别的缺陷概率
+    out_file = cp_result_path + 'cr_line_level_ranks_' + test_proj + '.pk'
+
+    # 如果模型的结果已经存在直接进行评估, 否则重新进行预测并评估
+    if os.path.exists(out_file):
+        with open(out_file, 'rb') as file:
+            data = pickle.load(file)
+            oracle_line_dict = data[0]
+            ranked_list_dict = data[1]
+            worst_list_dict = data[2]
+            defect_cut_off_dict = data[3]
+            effort_cut_off_dict = data[4]
+            f = 'activemq-core/src/main/java/org/apache/activemq/broker/region/DestinationFactoryImpl.java'
+
+            lines = [75, 78, 79, 93, 94, 95, 96]
+            for line in lines:
+                if f in ranked_list_dict.keys():
+                    ranked_list = ranked_list_dict[f]
+                    print(ranked_list)
+                    print(ranked_list.index(line))
 
 
 # OK 进行代码行级别的排序
-def LineDPModel(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold):
+def line_dp(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file):
     """
     Ranking line-level defect-prone lines using Line_DP model
     :param proj:
@@ -19,7 +107,6 @@ def LineDPModel(proj, vector, classifier, test_text_lines, test_filename, test_p
     :param test_filename:
     :param test_predictions:
     :param out_file:
-    :param threshold
     :return:
     """
     # 正确bug行号字典 预测bug行号字典 二分类切分点字典 工作量切分点字典
@@ -100,3 +187,23 @@ def LineDPModel(proj, vector, classifier, test_text_lines, test_filename, test_p
 
     dump_pk_result(out_file, [oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict])
     return evaluation(proj, oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict)
+
+
+# ################# 运行版本间预测实验 ###################
+def run_cross_release_prediction():
+    release_list = get_project_release_list(file_level_path)
+    projects_dict = {}
+    for release in release_list:
+        project = release.split('-')[0]
+        if project not in projects_dict:
+            projects_dict[project] = [release.replace(file_level_path_suffix, '')]
+        else:
+            projects_dict[project].append(release.replace(file_level_path_suffix, ''))
+    for project, releases in projects_dict.items():
+        cross_release_prediction(proj=project, releases_list=releases)
+        break
+
+
+if __name__ == '__main__':
+    # 运行版本间预测实验
+    run_cross_release_prediction()

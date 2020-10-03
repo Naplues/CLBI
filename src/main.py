@@ -1,9 +1,8 @@
 # -*- coding:utf-8 -*-
 
-from exps.cross_release import *
-from exps.within_release import *
-from models.access import AccessModel
-from models.line_dp import LineDPModel
+from src.exps.cross_release import *
+from src.exps.within_release import *
+from src.models.access import AccessModel
 
 # 忽略警告信息
 warnings.filterwarnings('ignore')
