@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 
 import warnings
+import numpy as np
 from src.utils.helper import *
 from sklearn import metrics
 from src.utils.eval import evaluation
@@ -31,7 +32,8 @@ def predict_within_release(proj_release, num_iter=10, num_folds=10, model=None, 
     :return:
     """
     make_path(f'{path}{proj_release}/')
-    print(f'========== Cross-release prediction for {proj_release} =============================================='[:60])
+    print(
+        f'========== Within-release prediction for {proj_release} =============================================='[:60])
     # 声明储存预测结果变量
     oracle_list = []
     prediction_list = []

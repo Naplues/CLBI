@@ -5,7 +5,6 @@ import os
 import re
 
 import pickle
-import numpy as np
 
 # 忽略警告信息
 simplefilter(action='ignore', category=FutureWarning)
@@ -17,6 +16,8 @@ line_level_path = f'{root_path}Dataset/Line-level/'
 result_path = f'{root_path}Result/'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
+
+projects = ['activemq', 'camel', 'derby', 'groovy', 'hbase', 'hive', 'jruby', 'lucene', 'wicket']
 
 
 def get_project_release_list():
@@ -57,7 +58,6 @@ def get_project_releases_dict():
     return project_releases_dict
 
 
-# 读取文件级别的数据集信息
 def read_file_level_dataset(proj):
     """
     读取文件级别的数据集信息
@@ -100,7 +100,6 @@ def read_file_level_dataset(proj):
         return texts, texts_lines, numeric_labels, src_files
 
 
-# 读取代码行级别的数据集信息
 def read_line_level_dataset(proj):
     """
     读取代码行级别的数据集信息
@@ -136,7 +135,6 @@ def save_csv_result(out_file, data):
         file.write(data)
 
 
-# 将行级别的评估结果组合在一个文件中
 def combine_results(path):
     """
     将行级别的评估结果组合在一个文件中
@@ -144,10 +142,9 @@ def combine_results(path):
     :param proj
     :return:
     """
-    projects = ['activemq', 'camel', 'derby', 'groovy', 'hbase', 'hive', 'jruby', 'lucene', 'wicket']
 
-    text_normal = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
-    text_worst = 'Setting,Test release,Recall,FAR,d2h,MCC,Recall@20%,IFA_mean,IFA_median\n'
+    text_normal = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
+    text_worst = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
     for proj in projects:
         with open(f'{path}line_level_evaluation_{proj}.csv', 'r') as file:
             count = 0
@@ -173,8 +170,11 @@ def make_path(path):
         os.makedirs(path)
 
 
-# 数据集统计信息
 def dataset_statistics():
+    """
+    数据集统计信息
+    :return:
+    """
     print('release name, #files, #buggy files, ratio, #LOC, #buggy LOC, ratio, #tokens')
     for proj in get_project_release_list():
         texts, texts_lines, numeric_labels, src_files = read_file_level_dataset(proj)
@@ -195,3 +195,34 @@ def dataset_statistics():
         tokens = len(vector.vocabulary_)
         res = (proj, file_num, bug_num, file_ratio, loc, bug_lines, line_ratio, tokens)
         print("%s, %d, %d, %f, %d, %d, %f, %d" % res)
+
+
+def output_box_data_for_metric():
+    setting = 'CP'
+    mode = 'worst'
+    index_dict = {'recall': 2, 'far': 3, 'd2h': 4, 'mcc': 5, 'ce': 6, 'r_20%': 7, 'IFA_mean': 8, 'IFA_median': 9}
+    thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+
+    for metric_name, metric_index in index_dict.items():
+        text = ', '.join([str(e) for e in thresholds]) + '\n'
+        result_data = []
+        for threshold in thresholds:
+            path = f'{result_path}{setting}/AccessModel_{threshold}/result_{mode}.csv'
+            with open(path, 'r') as file:
+                tmp = []
+                for line in file.readlines()[1:]:
+                    tmp.append(line.split(',')[metric_index])
+            result_data.append(tmp)
+
+        for j in range(len(result_data[0])):
+            for i in range(len(thresholds)):
+                text += result_data[i][j] + ','
+            text += '\n'
+
+        with open(f'{result_path}{setting}/threshold_{mode}_{metric_name}.csv', 'w') as file:
+            file.write(text)
+    print('Finish!')
+
+
+if __name__ == '__main__':
+    output_box_data_for_metric()

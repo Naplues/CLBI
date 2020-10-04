@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 
 import warnings
+import numpy as np
 from src.utils.helper import *
 from sklearn import metrics
 from src.utils.eval import evaluation
