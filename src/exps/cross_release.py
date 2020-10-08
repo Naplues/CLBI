@@ -73,7 +73,7 @@ def eval_cross_release(proj, releases, path, depend=False):
     :param depend: Whether depending the results of LineDP
     :return:
     """
-    performance = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
+    performance = 'Setting,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
     for i in range(len(releases) - 1):
         test_proj = releases[i + 1]
         print(f"Target release:\t{test_proj} ======================================================="[:80])

@@ -91,7 +91,7 @@ def eval_within_release(proj_release, num_iter=10, num_folds=10, path='', depend
     :param depend:
     :return:
     """
-    performance = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
+    performance = 'Setting,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
     text, text_lines, labels, filenames = read_file_level_dataset(proj_release)
     for it in range(num_iter):
         print(f'==================== Running iter {it} for {proj_release} ====================')
@@ -110,6 +110,7 @@ def eval_within_release(proj_release, num_iter=10, num_folds=10, path='', depend
                             data[1], data[2] = dep_data[1], dep_data[2]
 
                     performance += evaluation(proj_release, data[0], data[1], data[2], data[3], data[4])
+                fold += 1
             except IOError:
                 print('Error! Not found result file %s or %s' % (out_file, dep_file))
                 return

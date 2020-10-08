@@ -47,6 +47,6 @@ def run_cross_release_prediction(prediction_model, mode=Predict):
 
 if __name__ == '__main__':
     # 运行版本内预测实验
-    run_within_release_prediction(AccessModel, Predict)
+    run_within_release_prediction(AccessModel, Eval)
     # 运行版本间预测实验
     # run_cross_release_prediction(LineDPModel, Predict)
