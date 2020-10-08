@@ -10,16 +10,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_extraction.text import CountVectorizer
 
-from memory_profiler import profile
-
 # 忽略警告信息
 warnings.filterwarnings('ignore')
 simplefilter(action='ignore', category=FutureWarning)
 
-root_path = r'C://Users/GZQ/Desktop/CLDP_data'
 
-
-@profile
 def predict_within_release(proj_release, num_iter=10, num_folds=10, model=None, th=50, path=''):
     """
     版本内预测
@@ -39,7 +34,7 @@ def predict_within_release(proj_release, num_iter=10, num_folds=10, model=None, 
     prediction_list = []
     mcc_list = []
 
-    # 读取数据
+    # read data of each release
     text, text_lines, labels, filenames = read_file_level_dataset(proj_release)
     # 重复10次实验
     for it in range(num_iter):
@@ -91,7 +86,7 @@ def eval_within_release(proj_release, num_iter=10, num_folds=10, path='', depend
     :param depend:
     :return:
     """
-    performance = 'Setting,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
+    performance = 'Setting,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
     text, text_lines, labels, filenames = read_file_level_dataset(proj_release)
     for it in range(num_iter):
         print(f'==================== Running iter {it} for {proj_release} ====================')
@@ -116,4 +111,4 @@ def eval_within_release(proj_release, num_iter=10, num_folds=10, path='', depend
                 return
 
     # Output the evaluation results for line level experiments
-    save_csv_result(f'{path}line_level_evaluation_{proj_release}.csv', performance)
+    save_csv_result(f'{path}{proj_release}/line_level_evaluation_{proj_release}.csv', performance)

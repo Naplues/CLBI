@@ -292,7 +292,7 @@ def run_cross_release_prediction():
         cross_release_prediction(proj=project, releases_list=releases)
 
     # 组合评估结果文件
-    combine_results(cp_result_path)
+    combine_cross_results(cp_result_path)
 
 
 if __name__ == '__main__':

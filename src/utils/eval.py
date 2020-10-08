@@ -137,7 +137,7 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
     _mrr = -1 if n == 0 else _mrr / n
     _map = -1 if n == 0 else _map / n
 
-    print('recall\tFAR\td2h\tMCC\tCE\tr_20%\tIFA_avg\tIFA_med\tMRR\tMAP')
+    print('recall\tFAR\td2h\tMCC\tCE\tr_20%\tIFA_avg\tIFA_med')
     print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\n' % (recall, far, d2h, mcc, ce, recall_20, ifa_mean, ifa_median))
 
-    return f'{proj},{recall},{far},{d2h},{mcc},{ce},{recall_20},{ifa_mean},{ifa_median},{_mrr},{_map},{ifa}\n'
+    return f'{proj},{recall},{far},{d2h},{mcc},{ce},{recall_20},{ifa_mean},{ifa_median}\n'

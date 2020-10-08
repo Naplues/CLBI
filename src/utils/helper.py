@@ -10,7 +10,7 @@ import pickle
 simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
-root_path = r'C://Users/GZQ/Desktop/CLDP_data/'
+root_path = r'/Users/gzq/Desktop/CLDP_data/'
 file_level_path = f'{root_path}Dataset/File-level/'
 line_level_path = f'{root_path}Dataset/Line-level/'
 result_path = f'{root_path}Result/'
@@ -135,7 +135,7 @@ def save_csv_result(out_file, data):
         file.write(data)
 
 
-def combine_results(path):
+def combine_cross_results(path):
     """
     将行级别的评估结果组合在一个文件中
     :param path:
@@ -161,8 +161,57 @@ def combine_results(path):
         file.write(text_worst)
 
 
-def parse_results(proj, path):
-    pass
+def combine_within_results(path):
+    """
+    将行级别的评估结果组合在一个文件中
+    :param path:
+    :param proj
+    :return:
+    """
+    text_normal = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
+    text_worst = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
+    for proj in get_project_release_list():
+        normal, worst = [], []
+        with open(f'{path}{proj}/line_level_evaluation_{proj}.csv', 'r') as file:
+            count = 0
+            for line in file.readlines()[1:]:
+                if count % 2 == 0:
+                    normal.append(line)
+                else:
+                    worst.append(line)
+                count += 1
+        text_normal += average(normal)
+        text_worst += average(worst)
+
+    with open(f'{path}result_normal.csv', 'w') as file:
+        file.write(text_normal)
+    with open(f'{path}result_worst.csv', 'w') as file:
+        file.write(text_worst)
+
+
+def average(lines):
+    recall, far, d2h, mcc, ce, r_20, ifa_mean, ifa_median = .0, .0, .0, .0, .0, .0, .0, .0
+    release_name = ''
+    for line in lines:
+        ss = line.strip().split(',')
+        release_name = ss[1]
+        recall += float(ss[2])
+        far += float(ss[3])
+        d2h += float(ss[4])
+        mcc += float(ss[5])
+        ce += float(ss[6])
+        r_20 += float(ss[7])
+        ifa_mean += float(ss[8])
+        ifa_median += float(ss[9])
+    recall /= len(lines)
+    far /= len(lines)
+    d2h /= len(lines)
+    mcc /= len(lines)
+    ce /= len(lines)
+    r_20 /= len(lines)
+    ifa_mean /= len(lines)
+    ifa_median /= len(lines)
+    return f'{release_name},{recall},{far},{d2h},{mcc},{ce},{r_20},{ifa_mean},{ifa_median}\n'
 
 
 def make_path(path):

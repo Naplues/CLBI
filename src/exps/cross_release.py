@@ -13,8 +13,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 warnings.filterwarnings('ignore')
 simplefilter(action='ignore', category=FutureWarning)
 
-root_path = r'C://Users/GZQ/Desktop/CLDP_data'
-
 
 def predict_cross_release(proj, releases, model, th, path):
     """

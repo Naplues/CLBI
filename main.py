@@ -8,8 +8,6 @@ from src.models.access import AccessModel
 warnings.filterwarnings('ignore')
 simplefilter(action='ignore', category=FutureWarning)
 
-root_path = r'C://Users/GZQ/Desktop/CLDP_data'
-
 # Global control variable
 Predict = 'Predict'
 Eval = 'Evaluate'
@@ -26,7 +24,7 @@ def run_within_release_prediction(prediction_model, mode=Predict):
         else:
             eval_within_release(project_release, 10, 10, wp_result_path)
     if mode == Eval:
-        combine_results(wp_result_path)
+        combine_within_results(wp_result_path)
 
 
 # ################# Run cross release prediction experiments ###################
@@ -42,7 +40,7 @@ def run_cross_release_prediction(prediction_model, mode=Predict):
             else:
                 eval_cross_release(project, releases, cp_result_path)
         if mode == Eval:
-            combine_results(cp_result_path)
+            combine_cross_results(cp_result_path)
 
 
 if __name__ == '__main__':
