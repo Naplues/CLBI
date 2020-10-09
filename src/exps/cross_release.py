@@ -81,9 +81,10 @@ def eval_cross_release(proj, releases, path, depend=False):
             with open(out_file, 'rb') as file:
                 data = pickle.load(file)
                 if depend:
+                    print('depend')
                     with open(dep_file, 'rb') as f:
                         dep_data = pickle.load(f)
-                        data[1], data[2] = dep_data[1], dep_data[2]
+                        data[3] = dep_data[3]
 
                 performance += evaluation(proj, data[0], data[1], data[2], data[3], data[4])
         except IOError:

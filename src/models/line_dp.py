@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 
+import numpy as np
 from src.utils.helper import *
 from src.utils.eval import evaluation
 from lime.lime_text import LimeTextExplainer
@@ -40,8 +41,8 @@ def LineDPModel(proj, vector, classifier, test_text_lines, test_filename, test_p
     explainer = LimeTextExplainer(class_names=['defect', 'non-defect'], random_state=random_seed)
 
     # 对预测为有bug的文件逐个进行解释结果来进行代码行级别的预测
-    for defect_file_index in range(len(defect_prone_file_indices)):
-        target_file_index = defect_prone_file_indices[defect_file_index]
+    for i in range(len(defect_prone_file_indices)):
+        target_file_index = defect_prone_file_indices[i]
         # 目标文件名
         target_file_name = test_filename[target_file_index]
         # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中,这类文件要剔除
@@ -96,7 +97,7 @@ def LineDPModel(proj, vector, classifier, test_text_lines, test_filename, test_p
         effort_cf_dict[target_file_name] = int(.2 * len(target_file_lines))
         # 设置分类切分点: 所有包含risk tokens (i.e., hit_count[i] > 0) 的代码行被预测为有 bug
         defect_cf_dict[target_file_name] = len([hit for hit in hit_count if hit > 0])
-        print('%d/%d files predicted finish!' % (defect_file_index, len(defect_prone_file_indices)))
+        print('%d/%d files predicted finish!' % (i, len(defect_prone_file_indices)))
 
     dump_pk_result(out_file, [oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict])
     return evaluation(proj, oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict)

@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 
+import numpy as np
 from src.utils.helper import *
 from src.utils.eval import evaluation
 
@@ -50,7 +51,6 @@ def AccessModel(proj, vector, clf, test_text_lines, test_filename, test_predicti
 
     # 预测值为有缺陷的文件的索引
     defect_prone_file_indices = np.array([index[0] for index in np.argwhere(test_predictions == 1)])
-
     # 文本分词器
     tokenizer = vector.build_tokenizer()
 

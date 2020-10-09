@@ -95,14 +95,17 @@ def eval_within_release(proj_release, num_iter=10, num_folds=10, path='', depend
         fold = 0
         for train_index, test_index in ss.split(text, labels):
             out_file = '%s%s/wr_%d_%d.pk' % (path, proj_release, it, fold)
-            dep_file = '%s/Result/WP/LineDPModel_50/%s/wr_%d_%d.pk' % (root_path, proj_release, it, fold)
+            dep_file = '%sResult/WP/LineDPModel_50/%s/wr_%d_%d.pk' % (root_path, proj_release, it, fold)
             try:
                 with open(out_file, 'rb') as file:
                     data = pickle.load(file)
                     if depend:
+                        print('depend')
                         with open(dep_file, 'rb') as f:
                             dep_data = pickle.load(f)
-                            data[1], data[2] = dep_data[1], dep_data[2]
+                            print(data[3])
+                            data[3] = dep_data[3]
+                            print(data[3])
 
                     performance += evaluation(proj_release, data[0], data[1], data[2], data[3], data[4])
                 fold += 1
