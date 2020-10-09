@@ -3,6 +3,7 @@
 from src.exps.cross_release import *
 from src.exps.within_release import *
 from src.models.access import AccessModel
+from src.models.line_dp import LineDPModel
 
 # 忽略警告信息
 warnings.filterwarnings('ignore')
@@ -22,7 +23,7 @@ def run_within_release_prediction(prediction_model, mode=Predict):
         if mode == Predict:
             predict_within_release(project_release, 10, 10, prediction_model, threshold, wp_result_path)
         else:
-            eval_within_release(project_release, 10, 10, wp_result_path)
+            eval_within_release(project_release, 10, 10, wp_result_path, depend=True)
     if mode == Eval:
         combine_within_results(wp_result_path)
 
@@ -38,13 +39,13 @@ def run_cross_release_prediction(prediction_model, mode=Predict):
             if mode == Predict:
                 predict_cross_release(project, releases, prediction_model, threshold, cp_result_path)
             else:
-                eval_cross_release(project, releases, cp_result_path)
+                eval_cross_release(project, releases, cp_result_path, depend=True)
         if mode == Eval:
             combine_cross_results(cp_result_path)
 
 
 if __name__ == '__main__':
     # 运行版本内预测实验
-    run_within_release_prediction(AccessModel, Eval)
+    run_within_release_prediction(LineDPModel, Eval)
     # 运行版本间预测实验
     # run_cross_release_prediction(LineDPModel, Predict)

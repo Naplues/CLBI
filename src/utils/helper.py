@@ -143,8 +143,8 @@ def combine_cross_results(path):
     :return:
     """
 
-    text_normal = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
-    text_worst = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median,MRR,MAP,IFA list\n'
+    text_normal = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
+    text_worst = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
     for proj in projects:
         with open(f'{path}line_level_evaluation_{proj}.csv', 'r') as file:
             count = 0
