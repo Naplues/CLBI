@@ -87,13 +87,9 @@ def eval_within_release(proj_release, num_iter=10, num_folds=10, path='', depend
     :return:
     """
     performance = 'Setting,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
-    text, text_lines, labels, filenames = read_file_level_dataset(proj_release)
     for it in range(num_iter):
         print(f'==================== Running iter {it} for {proj_release} ====================')
-        # 定义10-折划分设置
-        ss = StratifiedKFold(n_splits=num_folds, shuffle=True, random_state=it)
-        fold = 0
-        for train_index, test_index in ss.split(text, labels):
+        for fold in range(num_folds):
             out_file = '%s%s/wr_%d_%d.pk' % (path, proj_release, it, fold)
             dep_file = '%sResult/WP/LineDPModel_50/%s/wr_%d_%d.pk' % (root_path, proj_release, it, fold)
             try:
@@ -103,12 +99,9 @@ def eval_within_release(proj_release, num_iter=10, num_folds=10, path='', depend
                         print('depend')
                         with open(dep_file, 'rb') as f:
                             dep_data = pickle.load(f)
-                            print(data[3])
                             data[3] = dep_data[3]
-                            print(data[3])
 
                     performance += evaluation(proj_release, data[0], data[1], data[2], data[3], data[4])
-                fold += 1
             except IOError:
                 print('Error! Not found result file %s or %s' % (out_file, dep_file))
                 return
