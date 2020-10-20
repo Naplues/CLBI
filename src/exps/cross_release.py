@@ -76,7 +76,7 @@ def eval_cross_release(proj, releases, path, depend=False):
         test_proj = releases[i + 1]
         print(f"Target release:\t{test_proj} ======================================================="[:80])
         out_file = f'{path}cr_line_level_result_{test_proj}.pk'
-        dep_file = f'{root_path}/Result/CP/LineDPModel_50/cr_line_level_result_{test_proj}.pk'
+        dep_file = f'{root_path}Result/CP/LineDPModel_50/cr_line_level_result_{test_proj}.pk'
         try:
             with open(out_file, 'rb') as file:
                 data = pickle.load(file)
@@ -85,8 +85,7 @@ def eval_cross_release(proj, releases, path, depend=False):
                     with open(dep_file, 'rb') as f:
                         dep_data = pickle.load(f)
                         data[3] = dep_data[3]
-
-                performance += evaluation(proj, data[0], data[1], data[2], data[3], data[4])
+                performance += evaluation(test_proj, data[0], data[1], data[2], data[3], data[4])
         except IOError:
             print('Error! Not found result file %s or %s' % (out_file, dep_file))
             return

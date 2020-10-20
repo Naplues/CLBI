@@ -17,7 +17,7 @@ Eval = 'Evaluate'
 # ################# Run within release prediction experiments ###################
 def run_within_release_prediction(prediction_model, mode=Predict):
     threshold = 50
-    wp_result_path = '%s/Result/WP/%s_%d/' % (root_path, getattr(prediction_model, '__name__'), threshold)
+    wp_result_path = '%sResult/WP/%s_%d/' % (root_path, getattr(prediction_model, '__name__'), threshold)
     make_path(wp_result_path)
     for project_release in get_project_release_list():
         if mode == Predict:
@@ -33,7 +33,7 @@ def run_cross_release_prediction(prediction_model, mode=Predict):
     # thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45]
     thresholds = [50]
     for threshold in thresholds:
-        cp_result_path = '%s/Result/CP/%s_%d/' % (root_path, getattr(prediction_model, '__name__'), threshold)
+        cp_result_path = '%sResult/CP/%s_%d/' % (root_path, getattr(prediction_model, '__name__'), threshold)
         make_path(cp_result_path)
         for project, releases in get_project_releases_dict().items():
             if mode == Predict:
@@ -46,7 +46,7 @@ def run_cross_release_prediction(prediction_model, mode=Predict):
 
 if __name__ == '__main__':
     # 运行版本内预测实验
-    run_within_release_prediction(AccessModel, Predict)
+    # run_within_release_prediction(AccessModel, Eval)
     # run_within_release_prediction(AccessModel, Eval)
     # 运行版本间预测实验
-    # run_cross_release_prediction(AccessModel, Eval)
+    run_cross_release_prediction(LineDPModel, Eval)

@@ -2,6 +2,7 @@
 
 import math
 import numpy as np
+from src.utils.helper import *
 
 
 # 评估行级别的分类效果
@@ -29,6 +30,7 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
     # 预测为无bug的行号
     predict_as_clean_line_dict = {}
 
+    tp_dict = []
     # ################## 按照二分类进行切分 工作量感知的指标  Recall, FAR, d2h, MCC ########################
     for target_file_name, ranked_list in ranked_list_dict.items():
         cut_off = defect_cut_off_dict[target_file_name]
@@ -43,6 +45,7 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
         for line_number in predicted_line_ranks:
             if line_number in oracle_line_numbers:
                 tp += 1
+                tp_dict.append(filename + ':' + str(line_number))
             else:
                 fp += 1
 
@@ -137,6 +140,7 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
     _mrr = -1 if n == 0 else _mrr / n
     _map = -1 if n == 0 else _map / n
 
+    # dump_pk_result(result_path + 'Diff/' + proj + '.pk', tp_dict)
     print('recall\tFAR\td2h\tMCC\tCE\tr_20%\tIFA_avg\tIFA_med')
     print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\n' % (recall, far, d2h, mcc, ce, recall_20, ifa_mean, ifa_median))
 
