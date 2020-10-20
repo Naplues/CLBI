@@ -1,16 +1,18 @@
 # -*- coding:utf-8 -*-
+
 from warnings import simplefilter
 
 import os
 import re
-
+import numpy as np
 import pickle
+from sklearn.feature_extraction.text import CountVectorizer
 
 # 忽略警告信息
 simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
-root_path = r'/Users/gzq/Desktop/CLDP_data/'
+root_path = r'C://Users/gzq/Desktop/CLDP_data/'
 file_level_path = f'{root_path}Dataset/File-level/'
 line_level_path = f'{root_path}Dataset/Line-level/'
 result_path = f'{root_path}Result/'
@@ -28,15 +30,14 @@ def get_project_release_list():
     # 按照时间排好顺序的releases
     return ['activemq-5.0.0', 'activemq-5.1.0', 'activemq-5.2.0', 'activemq-5.3.0', 'activemq-5.8.0',
             'camel-1.4.0', 'camel-2.9.0', 'camel-2.10.0', 'camel-2.11.0',
-            # 'derby-10.2.1.6', 'derby-10.3.1.4', 'derby-10.5.1.1',
+            'derby-10.2.1.6', 'derby-10.3.1.4', 'derby-10.5.1.1',
             'groovy-1_5_7', 'groovy-1_6_BETA_1', 'groovy-1_6_BETA_2',
-            'hbase-0.94.0', 'hbase-0.95.0',  # 'hbase-0.95.2',
-            'hive-0.9.0', 'hive-0.10.0',  # 'hive-0.12.0',
+            'hbase-0.94.0', 'hbase-0.95.0', 'hbase-0.95.2',
+            'hive-0.9.0', 'hive-0.10.0', 'hive-0.12.0',
             'jruby-1.1', 'jruby-1.4.0', 'jruby-1.5.0', 'jruby-1.7.0.preview1',
             'lucene-2.3.0', 'lucene-2.9.0', 'lucene-3.0.0', 'lucene-3.1',
             'wicket-1.3.0-incubating-beta-1', 'wicket-1.3.0-beta2', 'wicket-1.5.3'
             ]
-
     # return [file.replace(file_level_path_suffix, '') for file in os.listdir(folder)]
 
 

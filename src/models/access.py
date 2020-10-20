@@ -5,20 +5,6 @@ from src.utils.helper import *
 from src.utils.eval import evaluation
 
 
-# 嵌套深度相加
-def call_depth(statement):
-    statement = statement.strip('\"')
-    score = 0
-    depth = 0
-    for char in statement:
-        if char == '(':
-            depth += 1
-            score += depth
-        elif char == ')':
-            depth -= 1
-    return score
-
-
 def call_number(statement):
     statement = statement.strip('\"')
     score = 0
@@ -73,7 +59,7 @@ def AccessModel(proj, vector, clf, test_text_lines, test_filename, test_predicti
             if len(tokens_in_line) == 0:
                 hit_count[index] = 0
             else:
-                hit_count[index] = len(tokens_in_line) * call_depth(target_file_lines[index]) + 1
+                hit_count[index] = len(tokens_in_line) * call_number(target_file_lines[index]) + 1
 
             weight = 2
 

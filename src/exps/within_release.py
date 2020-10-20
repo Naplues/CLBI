@@ -38,12 +38,11 @@ def predict_within_release(proj_release, num_iter=10, num_folds=10, model=None, 
     text, text_lines, labels, filenames = read_file_level_dataset(proj_release)
     # 重复10次实验
     for it in range(num_iter):
-        print(f'==================== Running iter {it} for {proj_release} ====================')
         # 定义10-折划分设置
         ss = StratifiedKFold(n_splits=num_folds, shuffle=True, random_state=it)
         fold = 0
         for train_index, test_index in ss.split(text, labels):
-            print(f'========== Running fold {fold} ==========')
+            print(f'========== Running iter-fold: {it}-{fold} for {proj_release} ==========')
             # 1. 取出每折原始数据
             train_text = [text[i] for i in train_index]
             train_label = [labels[i] for i in train_index]
@@ -88,8 +87,8 @@ def eval_within_release(proj_release, num_iter=10, num_folds=10, path='', depend
     """
     performance = 'Setting,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
     for it in range(num_iter):
-        print(f'==================== Running iter {it} for {proj_release} ====================')
         for fold in range(num_folds):
+            print(f'========== Running iter-fold: {it}-{fold} for {proj_release} ==========')
             out_file = '%s%s/wr_%d_%d.pk' % (path, proj_release, it, fold)
             dep_file = '%sResult/WP/LineDPModel_50/%s/wr_%d_%d.pk' % (root_path, proj_release, it, fold)
             try:
