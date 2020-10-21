@@ -49,4 +49,4 @@ if __name__ == '__main__':
     # run_within_release_prediction(AccessModel, Eval)
     # run_within_release_prediction(AccessModel, Eval)
     # 运行版本间预测实验
-    run_cross_release_prediction(LineDPModel, Eval)
+    run_cross_release_prediction(AccessModel, Predict)

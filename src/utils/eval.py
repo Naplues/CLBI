@@ -31,6 +31,7 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
     predict_as_clean_line_dict = {}
 
     tp_dict = []
+    rank_dict = {}
     # ################## 按照二分类进行切分 工作量感知的指标  Recall, FAR, d2h, MCC ########################
     for target_file_name, ranked_list in ranked_list_dict.items():
         cut_off = defect_cut_off_dict[target_file_name]
@@ -118,6 +119,12 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
     _mrr, _map, n = .0, .0, .0
     for filename, predicted_line_ranks in ranked_list_dict.items():
         oracle_line_numbers = oracle_line_dict[filename]
+
+        for index in range(len(predicted_line_ranks)):
+            line_number = predicted_line_ranks[index]
+            if line_number in oracle_line_numbers:
+                rank_dict[filename + ':' + str(line_number)] = index
+
         rr, ap, i, k = .0, .0, 0, len(oracle_line_numbers)
         n += 1
         if k == 0:
@@ -140,7 +147,9 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
     _mrr = -1 if n == 0 else _mrr / n
     _map = -1 if n == 0 else _map / n
 
-    # dump_pk_result(result_path + 'Diff/' + proj + '.pk', tp_dict)
+    # Dump Classification Diff
+    # dump_pk_result(result_path + 'Diff_Classification/' + proj + '.pk', tp_dict)
+    dump_pk_result(result_path + 'Diff_Ranking/' + proj + '.pk', rank_dict)
     print('recall\tFAR\td2h\tMCC\tCE\tr_20%\tIFA_avg\tIFA_med')
     print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\n' % (recall, far, d2h, mcc, ce, recall_20, ifa_mean, ifa_median))
 

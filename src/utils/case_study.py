@@ -77,8 +77,71 @@ def case_study2():
     return ratio_buggy, ratio_clean
 
 
-if __name__ == '__main__':
+def study():
     r1, r2 = case_study2()
     print('\n'.join(r1))
     print('=' * 80)
     print('\n'.join(r2))
+
+
+def diff_classification():
+    releases = get_project_release_list()
+    for release in releases:
+        try:
+            access_path = result_path + 'Diff_Classification/AccessModel/' + release + '.pk'
+            linedp_path = result_path + 'Diff_Classification/LineDPModel/' + release + '.pk'
+            access, line_dp = [], []
+            with open(access_path, 'rb') as file:
+                access = pickle.load(file)
+            with open(linedp_path, 'rb') as file:
+                line_dp = pickle.load(file)
+
+            r1, r2, r3 = 0, 0, 0
+            for e in access:
+                if e not in line_dp:
+                    r1 += 1
+                else:
+                    r2 += 1
+            for e in line_dp:
+                if e not in access:
+                    r3 += 1
+
+            print(f'{release}, {r3}, {r2}, {r1}')
+
+        except IOError:
+            pass
+            # print(f'Error! Not found result file {release}')
+
+
+def diff_ranking():
+    releases = get_project_release_list()
+    for release in releases:
+        try:
+            access_path = result_path + 'Diff_Ranking/AccessModel/' + release + '.pk'
+            linedp_path = result_path + 'Diff_Ranking/LineDPModel/' + release + '.pk'
+            access, line_dp = [], []
+            with open(access_path, 'rb') as file:
+                access = pickle.load(file)
+            with open(linedp_path, 'rb') as file:
+                line_dp = pickle.load(file)
+
+            increase, decrease = [], []
+            for file_line in line_dp.keys():
+                rank_of_line_dp = line_dp[file_line]
+                rank_of_access = access[file_line]
+                # increase
+                if rank_of_access < rank_of_line_dp:
+                    increase.append(rank_of_line_dp - rank_of_access)
+                # decrease
+                if rank_of_access > rank_of_line_dp:
+                    decrease.append(rank_of_access - rank_of_line_dp)
+            print(f'{release}, {decrease}')
+
+        except IOError:
+            pass
+            # print(f'Error! Not found result file {release}')
+
+
+if __name__ == '__main__':
+    # diff_classification()
+    diff_ranking()
