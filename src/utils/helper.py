@@ -59,17 +59,18 @@ def get_project_releases_dict():
     return project_releases_dict
 
 
-def read_file_level_dataset(proj):
+def read_file_level_dataset(proj, file_path=file_level_path):
     """
     读取文件级别的数据集信息
     :param proj:项目名
+    :param file_path
     :return:
     """
-    path = file_level_path + proj + file_level_path_suffix
+    path = file_path + proj + file_level_path_suffix
     with open(path, 'r', encoding='utf-8', errors='ignore')as file:
         lines = file.readlines()
         # 文件索引列表, 每个文件名不一样才语句才没有错误 TODO
-        src_file_indices = [lines.index(line) for line in lines if re.search(r'.java,(true|false),', line)]
+        src_file_indices = [lines.index(line) for line in lines if r',true,"' in line or r',false,"' in line]
         # 源文件路径,需要时返回 OK
         src_files = [lines[index].split(',')[0] for index in src_file_indices]
         # 缺陷标记
@@ -124,15 +125,25 @@ def read_line_level_dataset(proj):
     return file_buggy_lines_dict
 
 
-# 保存结果
 def dump_pk_result(out_file, data):
+    """
+    dump result
+    :param out_file:
+    :param data:
+    :return:
+    """
     with open(out_file, 'wb') as file:
         pickle.dump(data, file)
 
 
-# 保存结果
 def save_csv_result(out_file, data):
-    with open(out_file, 'w') as file:
+    """
+    save result
+    :param out_file:
+    :param data:
+    :return:
+    """
+    with open(out_file, 'w', encoding='utf-8') as file:
         file.write(data)
 
 
@@ -216,6 +227,11 @@ def average(lines):
 
 
 def make_path(path):
+    """
+    make path is it does not exists
+    :param path:
+    :return:
+    """
     if not os.path.exists(path):
         os.makedirs(path)
 
@@ -274,5 +290,111 @@ def output_box_data_for_metric():
     print('Finish!')
 
 
+def transform():
+    for release in get_project_release_list():
+        data = 'filename,#total lines,#buggy lines,label\n'
+        text, text_lines, label, filename = read_file_level_dataset(release)
+        file_buggy = read_line_level_dataset(release)
+        for index in range(len(filename)):
+            name = filename[index]
+            lines = len([line for line in text_lines[index] if line.strip() != ''])
+            buggy = len(file_buggy[name]) if name in file_buggy.keys() else 0
+            label = 1 if buggy > 0 else 0
+            data += f'{name},{lines},{buggy},{label}\n'
+        save_csv_result(root_path + 'Transform/' + release + '.csv', data)
+        print(release, 'finish')
+
+
+def make_source_file():
+    """
+    导出所有source文件
+    :return:
+    """
+    for release in get_project_release_list():
+        # generate all source files of a release
+        release_source_path = root_path + 'Dataset/Source/' + release
+        make_path(release_source_path)
+        text, text_lines, label, filename = read_file_level_dataset(release)
+        for index in range(len(filename)):
+            print(filename[index].replace('/', '.'))
+            save_csv_result(release_source_path + '/' + filename[index].replace('/', '.'), text[index])
+        print(len(filename), 'in', release, 'finish')
+
+
+def make_udb_file():
+    for release in get_project_release_list():
+        # generate .udb file
+        release_source_path = root_path + 'Dataset/Source/' + release
+        release_udb_path = root_path + 'Dataset/UDB/' + release
+        print(release_udb_path)
+        os.system(f"und create -db {release_udb_path}.udb -languages java c++ python")
+        os.system(f"und -db {release_udb_path}.udb add {release_source_path}")
+        os.system(f"und -db {release_udb_path} -quiet analyze")
+
+
+def is_test_file(src):
+    """
+    Whether the target source file is a test file OK
+    :param src:
+    :return:
+    """
+    if 'src/test/' in src:
+        return True
+    else:
+        return False
+
+
+def is_non_java_file(src):
+    """
+    Whether the target source file is not a java file OK
+    :param src:
+    :return:
+    """
+    if '.java' not in src:
+        return True
+    else:
+        return False
+
+
+def remove_test_or_non_java_file_from_dataset():
+    """
+    移除数据集中的测试文件和非java文件 OK
+    :return:
+    """
+    for release in get_project_release_list():
+        # #### remove test file from file level dataset
+        t, texts_lines, numeric_labels, src_files = read_file_level_dataset(release, root_path + 'Dataset/Origin_File/')
+
+        new_file_dataset = 'File,Bug,SRC\n'
+        for index in range(len(src_files)):
+            target_file = src_files[index]
+            target_text = texts_lines[index]
+            if is_test_file(target_file) or is_non_java_file(target_file):
+                continue
+            label = 'true' if numeric_labels[index] == 1 else 'false'
+            new_file_dataset += f'{target_file},{label},"'
+            new_file_dataset += ''.join(target_text)
+            new_file_dataset += '"\n'
+
+        out_file = file_level_path + release + file_level_path_suffix
+        save_csv_result(out_file, data=new_file_dataset)
+
+        # #### remove test file from line level dataset
+        new_line_dataset = 'File,Line_number,SRC\n'
+        path = root_path + 'Dataset/Origin_Line/' + release + line_level_path_suffix
+        with open(path, 'r', encoding='utf-8', errors='ignore')as file:
+            lines = file.readlines()
+            for line in lines[1:]:
+                if is_test_file(line) or is_non_java_file(line):
+                    continue
+                new_line_dataset += line
+        out_file = line_level_path + release + line_level_path_suffix
+        save_csv_result(out_file, data=new_line_dataset)
+        print(release, 'finish')
+
+
 if __name__ == '__main__':
-    output_box_data_for_metric()
+    remove_test_or_non_java_file_from_dataset()
+    # output_box_data_for_metric()
+    # make_source_file()
+    # make_udb_file()
