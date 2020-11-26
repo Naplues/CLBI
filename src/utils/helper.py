@@ -12,14 +12,35 @@ from sklearn.feature_extraction.text import CountVectorizer
 simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
-root_path = r'C://Users/gzq/Desktop/CLDP_data/'
+root_path = r'D:/CLDP_data/'  # r'C://Users/gzq/Desktop/CLDP_data/'
 file_level_path = f'{root_path}Dataset/File-level/'
 line_level_path = f'{root_path}Dataset/Line-level/'
 result_path = f'{root_path}Result/'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
 
-projects = ['activemq', 'camel', 'derby', 'groovy', 'hbase', 'hive', 'jruby', 'lucene', 'wicket']
+projects = [
+    'ambari',
+    'amq',
+    'bookkeeper',
+    'calcite',
+    'camel',
+    'cassandra',
+    'flink',
+    'groovy',
+    'hbase',
+    'hive',
+    'ignite',
+    'log4j2',
+    'mahout',
+    'mng',
+    'nifi',
+    'nutch',
+    'storm',
+    'tika',
+    'ww',
+    'zookeeper',
+]
 
 
 def get_project_release_list():
@@ -28,16 +49,36 @@ def get_project_release_list():
     :return:
     """
     # 按照时间排好顺序的releases
-    return ['activemq-5.0.0', 'activemq-5.1.0', 'activemq-5.2.0', 'activemq-5.3.0', 'activemq-5.8.0',
-            'camel-1.4.0', 'camel-2.9.0', 'camel-2.10.0', 'camel-2.11.0',
-            'derby-10.2.1.6', 'derby-10.3.1.4', 'derby-10.5.1.1',
-            'groovy-1_5_7', 'groovy-1_6_BETA_1', 'groovy-1_6_BETA_2',
-            'hbase-0.94.0', 'hbase-0.95.0', 'hbase-0.95.2',
-            'hive-0.9.0', 'hive-0.10.0', 'hive-0.12.0',
-            'jruby-1.1', 'jruby-1.4.0', 'jruby-1.5.0', 'jruby-1.7.0.preview1',
-            'lucene-2.3.0', 'lucene-2.9.0', 'lucene-3.0.0', 'lucene-3.1',
-            'wicket-1.3.0-incubating-beta-1', 'wicket-1.3.0-beta2', 'wicket-1.5.3'
-            ]
+    return [
+        'ambari-1.2.0', 'ambari-2.1.0', 'ambari-2.2.0', 'ambari-2.4.0', 'ambari-2.5.0', 'ambari-2.6.0', 'ambari-2.7.0',
+        'amq-5.0.0', 'amq-5.1.0', 'amq-5.2.0', 'amq-5.4.0', 'amq-5.5.0', 'amq-5.6.0', 'amq-5.7.0', 'amq-5.8.0',
+        'amq-5.9.0', 'amq-5.10.0', 'amq-5.11.0', 'amq-5.12.0', 'amq-5.14.0', 'amq-5.15.0',
+        'bookkeeper-4.0.0', 'bookkeeper-4.2.0', 'bookkeeper-4.4.0',
+        'calcite-1.6.0', 'calcite-1.8.0', 'calcite-1.11.0', 'calcite-1.13.0', 'calcite-1.15.0', 'calcite-1.16.0',
+        'calcite-1.17.0', 'calcite-1.18.0',
+        'camel-2.11.0', 'camel-2.12.0', 'camel-2.13.0', 'camel-2.14.0', 'camel-2.17.0', 'camel-2.18.0', 'camel-2.19.0',
+        'cassandra-0.7.4', 'cassandra-0.8.6', 'cassandra-1.0.9', 'cassandra-1.1.6', 'cassandra-1.1.11',
+        'cassandra-1.2.11',
+        'flink-1.4.0', 'flink-1.6.0',
+        'groovy-1.0', 'groovy-1.5.5', 'groovy-1.6.0', 'groovy-1.7.3', 'groovy-1.7.6', 'groovy-1.8.1', 'groovy-1.8.7',
+        'groovy-2.1.0', 'groovy-2.1.6', 'groovy-2.4.4', 'groovy-2.4.6', 'groovy-2.4.8', 'groovy-2.5.0', 'groovy-2.5.5',
+        'hbase-0.94.1', 'hbase-0.94.5', 'hbase-0.98.0', 'hbase-0.98.5', 'hbase-0.98.11',
+        'hive-0.14.0', 'hive-1.2.0', 'hive-2.0.0', 'hive-2.1.0',
+        'ignite-1.0.0', 'ignite-1.4.0', 'ignite-1.6.0',
+        'log4j2-2.0', 'log4j2-2.1', 'log4j2-2.2', 'log4j2-2.3', 'log4j2-2.4', 'log4j2-2.5', 'log4j2-2.6', 'log4j2-2.7',
+        'log4j2-2.8', 'log4j2-2.9', 'log4j2-2.10',
+        'mahout-0.3', 'mahout-0.4', 'mahout-0.5', 'mahout-0.6', 'mahout-0.7', 'mahout-0.8',
+        'mng-3.0.0', 'mng-3.1.0', 'mng-3.2.0', 'mng-3.3.0', 'mng-3.5.0', 'mng-3.6.0',
+        'nifi-0.4.0', 'nifi-1.2.0', 'nifi-1.5.0', 'nifi-1.8.0',
+        'nutch-1.1', 'nutch-1.3', 'nutch-1.4', 'nutch-1.5', 'nutch-1.6', 'nutch-1.7', 'nutch-1.8', 'nutch-1.9',
+        'nutch-1.10', 'nutch-1.12', 'nutch-1.13', 'nutch-1.14', 'nutch-1.15',
+        'storm-0.9.0', 'storm-0.9.3', 'storm-1.0.0', 'storm-1.0.3', 'storm-1.0.5',
+        'tika-0.7', 'tika-0.8', 'tika-0.9', 'tika-0.10', 'tika-1.1', 'tika-1.3', 'tika-1.5', 'tika-1.7', 'tika-1.10',
+        'tika-1.13', 'tika-1.15', 'tika-1.17',
+        'ww-2.0.0', 'ww-2.0.5', 'ww-2.0.10', 'ww-2.1.1', 'ww-2.1.3', 'ww-2.1.7', 'ww-2.2.0', 'ww-2.2.2', 'ww-2.3.1',
+        'ww-2.3.4', 'ww-2.3.10', 'ww-2.3.15', 'ww-2.3.17', 'ww-2.3.20', 'ww-2.3.24',
+        'zookeeper-3.4.6', 'zookeeper-3.5.1', 'zookeeper-3.5.2', 'zookeeper-3.5.3',
+    ]
     # return [file.replace(file_level_path_suffix, '') for file in os.listdir(folder)]
 
 
@@ -125,25 +166,39 @@ def read_line_level_dataset(proj):
     return file_buggy_lines_dict
 
 
-def dump_pk_result(out_file, data):
+def dump_pk_result(path, data):
     """
     dump result
-    :param out_file:
+    :param path:
     :param data:
     :return:
     """
-    with open(out_file, 'wb') as file:
+    with open(path, 'wb') as file:
         pickle.dump(data, file)
 
 
-def save_csv_result(out_file, data):
+def load_pk_result(path):
+    with open(path, 'rb') as file:
+        data = pickle.load(file)
+    return data
+
+
+def read_data_from_file(path):
+    with open(path, 'r', encoding='utf-8', errors="ignore") as fr:
+        lines = fr.readlines()
+    return lines
+
+
+def save_csv_result(path, data):
     """
     save result
-    :param out_file:
+    :param path:
     :param data:
     :return:
     """
-    with open(out_file, 'w', encoding='utf-8') as file:
+    end = len(path) - len(path.split('/')[-1])
+    make_path(path[:end])
+    with open(path, 'w', encoding='utf-8') as file:
         file.write(data)
 
 
@@ -301,7 +356,10 @@ def transform():
             buggy = len(file_buggy[name]) if name in file_buggy.keys() else 0
             label = 1 if buggy > 0 else 0
             data += f'{name},{lines},{buggy},{label}\n'
-        save_csv_result(root_path + 'Transform/' + release + '.csv', data)
+
+        # save_csv_result(root_path + 'Transform/' + release + '.csv', data)
+        make_path(f'{root_path}Transform')
+        save_csv_result(f'{root_path}Transform/{release}.csv', data)
         print(release, 'finish')
 
 
@@ -338,10 +396,7 @@ def is_test_file(src):
     :param src:
     :return:
     """
-    if 'src/test/' in src:
-        return True
-    else:
-        return False
+    return 'src/test/' in src
 
 
 def is_non_java_file(src):
@@ -350,10 +405,7 @@ def is_non_java_file(src):
     :param src:
     :return:
     """
-    if '.java' not in src:
-        return True
-    else:
-        return False
+    return '.java' not in src
 
 
 def remove_test_or_non_java_file_from_dataset():
@@ -393,8 +445,26 @@ def remove_test_or_non_java_file_from_dataset():
         print(release, 'finish')
 
 
+def export_all_files_in_project(path):
+    """
+    Export all files in a specific root path OK
+    :param path:
+    :return:
+    """
+    file_list = []
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            file_path = (root.replace('\\', '/') + '/' + file).replace(path, '')
+            if not file_path.endswith('.java') or is_test_file(file_path):
+                continue
+            file_list.append(file_path)
+    return file_list
+
+
 if __name__ == '__main__':
-    remove_test_or_non_java_file_from_dataset()
+    # remove_test_or_non_java_file_from_dataset()
     # output_box_data_for_metric()
     # make_source_file()
     # make_udb_file()
+    print(len(get_project_release_list()))
+    transform()

@@ -1,11 +1,14 @@
 # -*- coding:utf-8 -*-
 
+import src.models.natural as natural
 from src.exps.cross_release import *
 from src.exps.within_release import *
 from src.models.access import AccessModel
 from src.models.line_dp import LineDPModel
 
 # 忽略警告信息
+from src.models.static_analysis_tools import detect_bugs_by_checkstyle_from_each_single_file
+
 warnings.filterwarnings('ignore')
 simplefilter(action='ignore', category=FutureWarning)
 
@@ -49,4 +52,7 @@ if __name__ == '__main__':
     # run_within_release_prediction(AccessModel, Eval)
     # run_within_release_prediction(AccessModel, Eval)
     # 运行版本间预测实验
-    run_cross_release_prediction(AccessModel, Eval)
+    # run_cross_release_prediction(AccessModel, Eval)
+
+    natural.main()
+    pass

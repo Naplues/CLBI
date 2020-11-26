@@ -149,7 +149,7 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
 
     # Dump Classification Diff
     # dump_pk_result(result_path + 'Diff_Classification/' + proj + '.pk', tp_dict)
-    dump_pk_result(result_path + 'Diff_Ranking/' + proj + '.pk', rank_dict)
+    # dump_pk_result(result_path + 'Diff_Ranking/' + proj + '.pk', rank_dict)
     print('recall\tFAR\td2h\tMCC\tCE\tr_20%\tIFA_avg\tIFA_med')
     print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\n' % (recall, far, d2h, mcc, ce, recall_20, ifa_mean, ifa_median))
 
