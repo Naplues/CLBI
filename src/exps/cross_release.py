@@ -49,6 +49,8 @@ def predict_cross_release(proj, releases, model, th, path):
         clf = LogisticRegression().fit(train_vtr, train_label)
         test_predictions = clf.predict(test_vtr)
 
+        print(clf.coef_)
+
         # 4. 储存文件级别的预测结果和评估指标
         oracle_list.append(test_label)
         prediction_list.append(test_predictions)

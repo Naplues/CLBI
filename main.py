@@ -4,10 +4,10 @@ import src.models.natural as natural
 from src.exps.cross_release import *
 from src.exps.within_release import *
 from src.models.access import AccessModel
-from src.models.line_dp import LineDPModel
+from src.models.line_dp import LineDPModel, TMILRModel
 
 # 忽略警告信息
-from src.models.static_analysis_tools import detect_bugs_by_checkstyle_from_each_single_file
+from src.models.static_analysis_tools import detect_bugs_by_checkstyle_from_each_single_file, PMDModel
 
 warnings.filterwarnings('ignore')
 simplefilter(action='ignore', category=FutureWarning)
@@ -52,7 +52,23 @@ if __name__ == '__main__':
     # run_within_release_prediction(AccessModel, Eval)
     # run_within_release_prediction(AccessModel, Eval)
     # 运行版本间预测实验
-    # run_cross_release_prediction(AccessModel, Eval)
-
-    natural.main()
+    # run_cross_release_prediction(PMDModel, Eval)
+    # run_cross_release_prediction(TMILRModel, Predict)
     pass
+
+
+'''
+camel-2.11.0 camel-2.12.0 camel-2.13.0 camel-2.14.0 camel-2.17.0 camel-2.18.0 camel-2.19.0
+flink-1.4.0 flink-1.6.0
+nifi-0.4.0 nifi-1.2.0 nifi-1.5.0 nifi-1.8.0 
+ww-2.2.0 ww-2.2.2 ww-2.3.1 ww-2.3.4 ww-2.3.10 ww-2.3.15 ww-2.3.17 ww-2.3.20 ww-2 ww-2.3.24 
+    detect_bugs_by_checkstyle_from_each_single_file('ww', 'ww-2.2.0')
+    detect_bugs_by_checkstyle_from_each_single_file('ww', 'ww-2.2.2')
+    detect_bugs_by_checkstyle_from_each_single_file('ww', 'ww-2.3.1')
+    detect_bugs_by_checkstyle_from_each_single_file('ww', 'ww-2.3.4')
+    detect_bugs_by_checkstyle_from_each_single_file('ww', 'ww-2.3.10')
+    detect_bugs_by_checkstyle_from_each_single_file('ww', 'ww-2.3.15')
+    detect_bugs_by_checkstyle_from_each_single_file('ww', 'ww-2.3.17')
+    detect_bugs_by_checkstyle_from_each_single_file('ww', 'ww-2.3.20')
+    detect_bugs_by_checkstyle_from_each_single_file('ww', 'ww-2.3.24')
+'''

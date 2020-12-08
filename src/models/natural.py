@@ -71,8 +71,8 @@ def train_n_gram(train_release, n):
                 n_gram_suffix_dict[seq_suffix] = d_suffix
             print(f'{i}-gram dict output finish')
 
-            dump_pk_result(f'{result_path}NBF/{train_release}/{i}-gram_prefix.pk', n_gram_prefix_dict)
-            dump_pk_result(f'{result_path}NBF/{train_release}/{i}-gram_suffix.pk', n_gram_suffix_dict)
+    dump_pk_result(f'{result_path}NBF/{train_release}/n-gram_prefix.pk', n_gram_prefix_dict)
+    dump_pk_result(f'{result_path}NBF/{train_release}/n-gram_suffix.pk', n_gram_suffix_dict)
     print(f'============================ n-gram dict output finish =============================')
 
 
@@ -132,7 +132,6 @@ def predict_prob(train_release, test_release, order):
 
             result_of_test_file.append(entropy)
         result_dict[test_filename[index]] = result_of_test_file
-        break
 
 
 def main():

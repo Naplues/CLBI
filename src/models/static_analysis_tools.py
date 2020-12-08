@@ -2,6 +2,8 @@
 
 import os
 import shutil
+
+from src.utils.eval import evaluation
 from src.utils.helper import *
 import xml.dom.minidom as minidom
 
@@ -106,7 +108,7 @@ def parse_detailed_result_of_pmd():
                 p_set = sorted(to_set([buggy[1] for buggy in buggy_list]))
                 lines = []
                 for p in p_set:
-                    lines += [buggy[0] for buggy in buggy_list if buggy[1] == p]
+                    lines += [f'{buggy[0]}:{buggy[1]}' for buggy in buggy_list if buggy[1] == p]
                 text += f'{file_name},{",".join(lines)}\n'
 
             save_csv_result(f'{project_result_root_path}/pmd_{release}.csv', text)
@@ -191,9 +193,9 @@ def combine_sun_and_google(path, sun_dict, google_dict):
     for file_name in file_names:
         lines = []
         if file_name in sun_dict:
-            lines += sun_dict[file_name]
+            lines += [f'{line_number}:1' for line_number in sun_dict[file_name]]
         if file_name in google_dict:
-            lines += google_dict[file_name]
+            lines += [f'{line_number}:2' for line_number in google_dict[file_name]]
         file_name = file_name.replace("\\", "/").replace(path, "")
         text += f'{file_name},{",".join(lines)}\n'
     return text
@@ -203,8 +205,9 @@ def parse_detailed_result_of_checkstyle():
     error_project_release_list = []
     for proj, releases in get_project_releases_dict().items():
         for rel in releases:
+            # print(f'{"=" * 30} Parse bugs of {rel} by CheckStyle tool {"=" * 30}')
             prefix_path = f'{root_path}Repository/{proj}/'
-            # print(rel)
+
             output_file_path = f'{result_path}CheckStyle/final_result/{proj}/'
             make_path(output_file_path)
             method_root_path = f'{result_path}CheckStyle/detailed_result/{proj}/cs_sun_{rel}.csv'
@@ -256,6 +259,7 @@ def detect_bugs_by_checkstyle_from_each_single_file(project, release):
         source_file = source_files[index]
         print(f'Processing {index}/{len(source_files)} {source_file}')
         buggy_lines = []
+        p = 1
         for check in ['sun', 'google']:
             config_file = f'%CHECKSTYLE_HOME%/{check}_checks.xml'  # docs/google_checks.xml
             detail_file_path = detail_result_path + source_file.replace('/', '.') + '.xml'
@@ -267,14 +271,98 @@ def detect_bugs_by_checkstyle_from_each_single_file(project, release):
             if not is_legal_file(detail_file_path):
                 continue
 
-            buggy_lines += to_set(parse_file_xml_get_buggy_lines(detail_file_path))
-
+            buggy_lines += [f'{line}:{p}' for line in to_set(parse_file_xml_get_buggy_lines(detail_file_path))]
+            p += 1
         text += f'{source_file},{",".join(buggy_lines)}\n' if len(buggy_lines) != 0 else ''
 
     save_csv_result(f'{final_result_path}cs_{release}.csv', text)
 
 
-if __name__ == '__main__':
+# ############################################# CheckStyle #####################################################
+
+def read_SAT_result(path):
+    file_line_weight_dict = {}
+    for file in read_data_from_file(path):
+        split = file.strip().split(',')
+        temp_dict = {}
+        for line in split[1:]:
+            s = line.split(':')
+            line_number, weight = int(s[0]), 1 / int(s[1])
+            temp_dict[line_number] = weight
+        file_line_weight_dict[split[0]] = temp_dict
+    return file_line_weight_dict
+
+
+def PMDModel(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold):
+
+    file_line_weight_dict = read_SAT_result(f'{result_path}PMD/final_result/{proj.split("-")[0]}/pmd_{proj}.csv')
+
+    # 正确bug行号字典 预测bug行号字典 二分类切分点字典 工作量切分点字典
+    oracle_line_dict = read_line_level_dataset(proj)
+    ranked_list_dict = {}
+    worst_list_dict = {}
+    defect_cf_dict = {}
+    effort_cf_dict = {}
+
+    # 预测值为有缺陷的文件的索引
+    defect_prone_file_indices = np.array([index[0] for index in np.argwhere(test_predictions == 1)])
+
+    # 对预测为有bug的文件逐个进行代码行级别的排序
+    for i in range(len(defect_prone_file_indices)):
+        target_file_index = defect_prone_file_indices[i]
+        # 目标文件名
+        target_file_name = test_filename[target_file_index]
+        # 有的测试文件(被预测为有bug,但实际上)没有bug,因此不会出现在 oracle 中,这类文件要剔除
+        if target_file_name not in oracle_line_dict:
+            oracle_line_dict[target_file_name] = []
+        # 目标文件的代码行列表
+        target_file_lines = test_text_lines[target_file_index]
+
+        # ############################ 重点,怎么给每行赋一个缺陷值 ################################
+        # 计算 每一行的权重, 初始为 [0 0 0 0 0 0 ... 0 0], 注意行号从0开始计数
+        hit_count = np.array([.0] * len(target_file_lines))
+        if target_file_name in file_line_weight_dict:
+            for index in range(len(target_file_lines)):
+                if index + 1 in file_line_weight_dict[target_file_name]:
+                    hit_count[index] = file_line_weight_dict[target_file_name][index + 1]
+
+        # ############################ 重点,怎么给每行赋一个缺陷值 ################################
+
+        # 根据命中次数对代码行进行降序排序, 按照排序后数值从大到小的顺序显示代码行在原列表中的索引, cut_off 为切分点
+        # line + 1,因为下标是从0开始计数而不是从1开始
+        sorted_index = np.argsort(-hit_count)
+        sorted_line_number = [line + 1 for line in sorted_index.tolist()]
+        # 原始未经过调整的列表
+        ranked_list_dict[target_file_name] = sorted_line_number
+
+        # ####################################### 将序列调整为理论上的最差性能  实际使用时可以去掉 ################
+        # 需要调整为最差排序的列表,当分数相同时
+        worst_line_number = list(sorted_line_number)
+        sorted_list = hit_count[sorted_index]
+        worse_list, current_score, start_index, oracle_lines = [], -1, -1, oracle_line_dict[target_file_name]
+        for ii in range(len(sorted_list)):
+            if sorted_list[ii] != current_score:
+                current_score = sorted_list[ii]
+                start_index = ii
+            elif worst_line_number[ii] not in oracle_lines:
+                temp = worst_line_number[ii]  # 取出这个无bug的行号
+                for t in range(ii, start_index, -1):
+                    worst_line_number[t] = worst_line_number[t - 1]
+                worst_line_number[start_index] = temp
+        worst_list_dict[target_file_name] = worst_line_number
+        # ####################################### 将序列调整为理论上的最差性能  实际使用时可以去掉 ################
+
+        # ###################################### 切分点设置 ################################################
+        # 20% effort (i.e., LOC)
+        effort_cf_dict[target_file_name] = int(.2 * len(target_file_lines))
+        # 设置分类切分点: 默认前50%
+        defect_cf_dict[target_file_name] = int(threshold / 100.0 * len(target_file_lines))
+
+    dump_pk_result(out_file, [oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict])
+    return evaluation(proj, oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict)
+
+
+def run_hint():
     # run pmd
     # detect_bugs_by_pmd()
     # parse_detailed_result_of_pmd()
@@ -283,4 +371,10 @@ if __name__ == '__main__':
     # detect_bugs_by_checkstyle()
     # parse_detailed_result_of_checkstyle()
     # detect_bugs_by_checkstyle_from_each_single_file('ww', 'ww-2.2.0')
+    pass
+
+
+if __name__ == '__main__':
+    # parse_detailed_result_of_pmd()
+    parse_detailed_result_of_checkstyle()
     pass
