@@ -2,11 +2,18 @@
 
 import warnings
 import numpy as np
+
 from src.utils.helper import *
 from sklearn import metrics
 from src.utils.eval import evaluation
+from src.models.explain import *
 
+from sklearn.svm import LinearSVC
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+
 from sklearn.feature_extraction.text import CountVectorizer
 
 # 忽略警告信息
@@ -46,10 +53,22 @@ def predict_cross_release(proj, releases, model, th, path):
         test_vtr = vector.transform(test_text)
 
         # 3. 定义 LogisticRegression 分类器, 使用默认设置进行训练和预测
-        clf = LogisticRegression().fit(train_vtr, train_label)
+        if model == TMI_RF_Model:
+            print('Random Forest')
+            clf = RandomForestClassifier().fit(train_vtr, train_label)
+        elif model == TMI_Tree_Model:
+            print('Decision Tree')
+            clf = DecisionTreeClassifier().fit(train_vtr, train_label)
+        elif model == TMI_SVM_L_Model:
+            print('Linear SVM')
+            clf = LinearSVC().fit(train_vtr, train_label)
+        elif model == TMI_MNB_Model:
+            print('MultinomialNB')
+            clf = MultinomialNB().fit(train_vtr, train_label)
+        else:
+            print('Logistic')
+            clf = LogisticRegression().fit(train_vtr, train_label)
         test_predictions = clf.predict(test_vtr)
-
-        print(clf.coef_)
 
         # 4. 储存文件级别的预测结果和评估指标
         oracle_list.append(test_label)
@@ -64,12 +83,13 @@ def predict_cross_release(proj, releases, model, th, path):
     print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
 
 
-def eval_cross_release(proj, releases, path, depend=False):
+def eval_cross_release(proj, releases, path, prediction_model, depend=False):
     """
     Evaluate the results under cross release experiments
     :param proj: Target project
     :param releases: The release list in target project
     :param path: The path of result .pk file
+    :param prediction_model
     :param depend: Whether depending the results of LineDP
     :return:
     """
@@ -78,7 +98,7 @@ def eval_cross_release(proj, releases, path, depend=False):
         test_proj = releases[i + 1]
         print(f"Target release:\t{test_proj} ======================================================="[:80])
         out_file = f'{path}cr_line_level_result_{test_proj}.pk'
-        dep_file = f'{root_path}Result/CP/LineDPModel_50/cr_line_level_result_{test_proj}.pk'
+        dep_file = f'{root_path}Result/CP/{prediction_model}_50/cr_line_level_result_{test_proj}.pk'
         try:
             with open(out_file, 'rb') as file:
                 data = pickle.load(file)
