@@ -11,7 +11,7 @@ random_seed = 0  # random seed is set as 0-9
 
 
 # OK 进行代码行级别的排序
-def LineDPModel(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold):
+def LineDP_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold):
     """
     Ranking line-level defect-prone lines using Line_DP model
     :param proj:
@@ -201,7 +201,7 @@ def TMI_LR_Model(proj, vector, classifier, test_text_lines, test_filename, test_
 
 
 # OK 进行代码行级别的排序
-def TMI_SVM_L_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold):
+def TMI_SVM_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold):
     return TMI_LR_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold)
 
 
@@ -304,5 +304,5 @@ def TMI_RF_Model(proj, vector, classifier, test_text_lines, test_filename, test_
 
 
 # OK 进行代码行级别的排序
-def TMI_Tree_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold):
+def TMI_DT_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold):
     return TMI_RF_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold)

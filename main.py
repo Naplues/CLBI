@@ -2,7 +2,7 @@
 
 import src.models.natural as natural
 from src.exps.cross_release import *
-from src.models.access import AccessModel
+from src.models.access import AccessModel, NT_Model, NFC_Model
 from src.models.explain import *
 
 # 忽略警告信息
@@ -16,38 +16,98 @@ Predict = 'Predict'
 Eval = 'Evaluate'
 
 
-# ################# Run cross release prediction experiments ###################
-def run_cross_release_prediction(prediction_model, mode=Predict):
+# ################# Run cross release predict experiments ###################
+def run_cross_release_predict(prediction_model, depend_model=None):
     # thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45]
     thresholds = [50]
     for threshold in thresholds:
-        cp_result_path = '%sResult/CP/%s_%d/' % (root_path, getattr(prediction_model, '__name__'), threshold)
-        make_path(cp_result_path)
         for project, releases in get_project_releases_dict().items():
-            if mode == Predict:
-                predict_cross_release(project, releases, prediction_model, threshold, cp_result_path)
-            else:
-                # depend = True 时, Access 结果 依赖baseline方法, = False 时, 为自身的预测结果
-                depend_model = LineDPModel
-                eval_cross_release(project, releases, cp_result_path, depend_model, depend=False)
-        if mode == Eval:
-            combine_cross_results(cp_result_path)
+            predict_cross_release(project, releases, prediction_model, depend_model, threshold)
+
+
+# ################# Run cross release eval experiments ###################
+def run_cross_release_eval(prediction_model, depend_model=AccessModel, depend=False):
+    # thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45]
+    thresholds = [50]
+    for threshold in thresholds:
+        for project, releases in get_project_releases_dict().items():
+            # depend = True 时, Access 结果 依赖baseline方法, = False 时, 为自身的预测结果
+            eval_cross_release(project, releases, prediction_model, depend_model, threshold, depend)
+
+        cp_result_path = f'{root_path}Result/CP/{getattr(prediction_model, "__name__")}_{threshold}/'
+        combine_cross_results(cp_result_path)
+        # eval_ifa(cp_result_path)
+        # combine_cross_results_for_each_project(cp_result_path)
 
 
 if __name__ == '__main__':
-    # 运行版本内预测实验
-    # run_within_release_prediction(AccessModel, Eval)
-    # run_within_release_prediction(AccessModel, Eval)
-    # 运行版本间预测实验
-    # run_cross_release_prediction(PMDModel, Eval)
-    # run_cross_release_prediction(CheckStyleModel, Predict)
+    # ============================= Access ====================================
+    run_cross_release_predict(AccessModel)
+    # run_cross_release_eval(AccessModel)
 
-    # run_cross_release_prediction(TMI_LR_Model, Predict)
-    # run_cross_release_prediction(TMI_SVM_L_Model, Predict)
-    # run_cross_release_prediction(TMI_MNB_Model, Predict)
+    # ======================= SAT-based approaches ============================
+    # run_cross_release_predict(PMDModel)
+    # run_cross_release_predict(CheckStyleModel)
+    # run_cross_release_eval(PMDModel)
+    # run_cross_release_eval(CheckStyleModel)
 
-    # run_cross_release_prediction(TMI_RF_Model, Predict)
-    # run_cross_release_prediction(TMI_Tree_Model, Predict)
+    # ======================= LM-based approaches =============================
+    # run_cross_release_predict(natural.LM_2_Model)
+    # run_cross_release_eval(natural.LM_2_Model)
 
-    natural.run_lm()
+    # ======================= MI-based approaches =============================
+    # run_cross_release_predict(TMI_LR_Model)
+    # run_cross_release_predict(TMI_MNB_Model)
+    # run_cross_release_predict(TMI_SVM_Model)
+    # run_cross_release_predict(TMI_DT_Model)
+    # run_cross_release_predict(TMI_RF_Model)
+    # run_cross_release_predict(LineDPModel)
+    # run_cross_release_eval(TMI_LR_Model)
+    # run_cross_release_eval(TMI_MNB_Model)
+    # run_cross_release_eval(TMI_SVM_Model)
+    # run_cross_release_eval(TMI_DT_Model)
+    # run_cross_release_eval(TMI_RF_Model)
+    # run_cross_release_eval(LineDPModel)
+
+    # ======================= CM-based approaches =============================
+    # run_cross_release_predict(NFC_Model)
+    # run_cross_release_predict(NT_Model)
+    # run_cross_release_eval(NFC_Model)
+    # run_cross_release_eval(NT_Model)
+
+    # ========================= Comparison ====================================
+    # run_cross_release_predict(AccessModel, PMDModel)
+    # run_cross_release_eval(AccessModel, PMDModel, True)
+
+    # run_cross_release_predict(AccessModel, CheckStyleModel)
+    # run_cross_release_eval(AccessModel, CheckStyleModel, True)
+
+    # run_cross_release_predict(AccessModel, natural.LM_2_Model)
+    # run_cross_release_eval(AccessModel, natural.LM_2_Model, True)
+
+    # run_cross_release_predict(AccessModel, TMI_LR_Model)
+    # run_cross_release_eval(AccessModel, TMI_LR_Model, True)
+
+    # run_cross_release_predict(AccessModel, TMI_MNB_Model)
+    # run_cross_release_eval(AccessModel, TMI_MNB_Model, True)
+
+    # run_cross_release_predict(AccessModel, TMI_SVM_Model)
+    # run_cross_release_eval(AccessModel, TMI_SVM_Model, True)
+
+    # run_cross_release_predict(AccessModel, TMI_DT_Model)
+    # run_cross_release_eval(AccessModel, TMI_DT_Model, True)
+
+    # run_cross_release_predict(AccessModel, TMI_RF_Model)
+    # run_cross_release_eval(AccessModel, TMI_RF_Model, True)
+
+    # run_cross_release_predict(AccessModel, LineDP_Model)
+    # run_cross_release_eval(AccessModel, LineDP_Model, True)
+
+    # run_cross_release_predict(AccessModel, NFC_Model)
+    # run_cross_release_eval(AccessModel, NFC_Model, True)
+
+    # run_cross_release_predict(AccessModel, NT_Model)
+    # run_cross_release_eval(AccessModel, NT_Model, True)
+
+    # natural.run_lm()
     pass

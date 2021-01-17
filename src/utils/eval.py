@@ -101,6 +101,7 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
 
     # 统计IFA
     ifa_list = []
+    all_list = []  # 代码文件总行数
     for filename, predicted_line_ranks in ranked_list_dict.items():
         ifa = 0
         oracle_line_numbers = oracle_line_dict[filename]
@@ -154,3 +155,4 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
     print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\n' % (recall, far, d2h, mcc, ce, recall_20, ifa_mean, ifa_median))
 
     return f'{proj},{recall},{far},{d2h},{mcc},{ce},{recall_20},{ifa_mean},{ifa_median}\n'
+    # return f'{proj},{ifa}\n'

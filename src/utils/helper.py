@@ -206,12 +206,11 @@ def combine_cross_results(path):
     """
     将行级别的评估结果组合在一个文件中
     :param path:
-    :param proj
     :return:
     """
 
-    text_normal = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
-    text_worst = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
+    text_normal = 'Mode,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
+    text_worst = 'Mode,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
     for proj in projects:
         with open(f'{path}line_level_evaluation_{proj}.csv', 'r') as file:
             count = 0
@@ -228,32 +227,58 @@ def combine_cross_results(path):
         file.write(text_worst)
 
 
-def combine_within_results(path):
+def add_value(avg_data, line):
+    values = line.split(',')[2:]
+    for index in range(len(values)):
+        avg_data[index] += float(values[index])
+    return avg_data
+
+
+def combine_cross_results_for_each_project(path):
     """
     将行级别的评估结果组合在一个文件中
     :param path:
-    :param proj
     :return:
     """
-    text_normal = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
-    text_worst = 'Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
-    for proj in get_project_release_list():
-        normal, worst = [], []
-        with open(f'{path}{proj}/line_level_evaluation_{proj}.csv', 'r') as file:
+    text_normal = 'Mode,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
+    text_worst = 'Mode,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
+    for proj in projects:
+        avg_normal, avg_worst = [.0] * 8, [.0] * 8
+        with open(f'{path}line_level_evaluation_{proj}.csv', 'r') as file:
             count = 0
             for line in file.readlines()[1:]:
                 if count % 2 == 0:
-                    normal.append(line)
+                    avg_normal = add_value(avg_normal, line)
                 else:
-                    worst.append(line)
+                    avg_worst = add_value(avg_worst, line)
                 count += 1
-        text_normal += average(normal)
-        text_worst += average(worst)
+        avg_normal = list(np.array(avg_normal) * 2 / count)
+        avg_worst = list(np.array(avg_worst) * 2 / count)
+        text_normal += f'normal,{proj},' + ','.join([str(e) for e in avg_normal]) + '\n'
+        text_worst += f'worst,{proj},' + ','.join([str(e) for e in avg_worst]) + '\n'
 
-    with open(f'{path}result_normal.csv', 'w') as file:
+    with open(f'{path}result_normal_single_project.csv', 'w') as file:
         file.write(text_normal)
-    with open(f'{path}result_worst.csv', 'w') as file:
+    with open(f'{path}result_worst_single_project.csv', 'w') as file:
         file.write(text_worst)
+
+
+def eval_ifa(path):
+    ifa_dict = {}
+    with open(f'{path}result_worst.csv', 'r') as file:
+        for line in file.readlines()[1:]:
+            project_name = line.split(',')[1].split('-')[0]
+            if project_name not in ifa_dict:
+                ifa_dict[project_name] = ','.join(line.strip().split(',')[2:])
+            else:
+                ifa_dict[project_name] += ',' + ','.join(line.strip().split(',')[2:])
+
+    text = ''
+    for project_name in ifa_dict:
+        text += project_name + ',' + ifa_dict[project_name] + '\n'
+
+    with open(f'{path}result_worst.csv', 'w') as file:
+        file.write(text)
 
 
 def average(lines):
@@ -466,5 +491,4 @@ if __name__ == '__main__':
     # output_box_data_for_metric()
     # make_source_file()
     # make_udb_file()
-    print(len(get_project_release_list()))
-    transform()
+    dataset_statistics()

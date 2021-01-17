@@ -358,6 +358,7 @@ def PMDModel(proj, vector, classifier, test_text_lines, test_filename, test_pred
         effort_cf_dict[target_file_name] = int(.2 * len(target_file_lines))
         # 设置分类切分点: 默认前50%
         defect_cf_dict[target_file_name] = int(threshold / 100.0 * len(target_file_lines))
+        # defect_cf_dict[target_file_name] = len([hit for hit in hit_count if hit > 0])
 
     dump_pk_result(out_file, [oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict])
     return evaluation(proj, oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict)
@@ -425,6 +426,7 @@ def CheckStyleModel(proj, vector, classifier, test_text_lines, test_filename, te
         # 20% effort (i.e., LOC)
         effort_cf_dict[target_file_name] = int(.2 * len(target_file_lines))
         # 设置分类切分点: 默认前50%
+        # defect_cf_dict[target_file_name] = len([hit for hit in hit_count if hit > 0])
         defect_cf_dict[target_file_name] = int(threshold / 100.0 * len(target_file_lines))
 
     dump_pk_result(out_file, [oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict])
