@@ -37,13 +37,13 @@ def run_cross_release_eval(prediction_model, depend_model=AccessModel, depend=Fa
         cp_result_path = f'{root_path}Result/CP/{getattr(prediction_model, "__name__")}_{threshold}/'
         combine_cross_results(cp_result_path)
         # eval_ifa(cp_result_path)
-        # combine_cross_results_for_each_project(cp_result_path)
+        combine_cross_results_for_each_project(cp_result_path)
 
 
 if __name__ == '__main__':
     # ============================= Access ====================================
     run_cross_release_predict(AccessModel)
-    # run_cross_release_eval(AccessModel)
+    run_cross_release_eval(AccessModel)
 
     # ======================= SAT-based approaches ============================
     # run_cross_release_predict(PMDModel)
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     # run_cross_release_eval(TMI_SVM_Model)
     # run_cross_release_eval(TMI_DT_Model)
     # run_cross_release_eval(TMI_RF_Model)
-    # run_cross_release_eval(LineDPModel)
+    # run_cross_release_eval(LineDP_Model)
 
     # ======================= CM-based approaches =============================
     # run_cross_release_predict(NFC_Model)

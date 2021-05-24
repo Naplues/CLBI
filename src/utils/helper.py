@@ -12,7 +12,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
-root_path = r'D:/CLDP_data/'  # r'C://Users/gzq/Desktop/CLDP_data/'
+root_path = r'D:/CLDP_data/'  # r'C://Users/gzq/Desktop/CLDP_data/'  r'D:/CLDP_data/'
 file_level_path = f'{root_path}Dataset/File-level/'
 line_level_path = f'{root_path}Dataset/Line-level/'
 result_path = f'{root_path}Result/'
@@ -40,6 +40,17 @@ projects = [
     'tika',
     'ww',
     'zookeeper',
+
+    # 'activemq',
+    # 'camel',
+    # 'derby',
+    # 'groovy',
+    # 'hbase',
+    # 'hive',
+    # 'jruby',
+    # 'lucene',
+    # 'wicket',
+
 ]
 
 
@@ -78,6 +89,16 @@ def get_project_release_list():
         'ww-2.0.0', 'ww-2.0.5', 'ww-2.0.10', 'ww-2.1.1', 'ww-2.1.3', 'ww-2.1.7', 'ww-2.2.0', 'ww-2.2.2', 'ww-2.3.1',
         'ww-2.3.4', 'ww-2.3.10', 'ww-2.3.15', 'ww-2.3.17', 'ww-2.3.20', 'ww-2.3.24',
         'zookeeper-3.4.6', 'zookeeper-3.5.1', 'zookeeper-3.5.2', 'zookeeper-3.5.3',
+        #
+        # 'activemq-5.0.0', 'activemq-5.1.0', 'activemq-5.2.0', 'activemq-5.3.0', 'activemq-5.8.0',
+        # 'camel-1.4.0', 'camel-2.9.0', 'camel-2.10.0', 'camel-2.11.0',
+        # 'derby-10.2.1.6', 'derby-10.3.1.4', 'derby-10.5.1.1',
+        # 'groovy-1_5_7', 'groovy-1_6_BETA_1', 'groovy-1_6_BETA_2',
+        # 'hbase-0.94.0', 'hbase-0.95.0', 'hbase-0.95.2',
+        # 'hive-0.9.0', 'hive-0.10.0', 'hive-0.12.0',
+        # 'jruby-1.1', 'jruby-1.4.0', 'jruby-1.5.0', 'jruby-1.7.0',
+        # 'lucene-2.3.0', 'lucene-2.9.0', 'lucene-3.0.0', 'lucene-3.1',
+        # 'wicket-1.3.0-beta2', 'wicket-1.3.0-incubating-beta-1', 'wicket-1.5.3',
     ]
     # return [file.replace(file_level_path_suffix, '') for file in os.listdir(folder)]
 
@@ -85,6 +106,7 @@ def get_project_release_list():
 def get_project_releases_dict():
     """
     get project releases dict: dict[project] = [releases]
+    返回 项目名 -> 版本号 字典
     :return:
     """
     release_list = get_project_release_list()
@@ -189,16 +211,30 @@ def read_data_from_file(path):
     return lines
 
 
-def save_csv_result(path, data):
+def save_csv_result(file_path, file_name, data):
     """
     save result
-    :param path:
-    :param data:
+    :param file_path: The file location
+    :param file_name: The file name
+    :param data: The data
     :return:
     """
-    end = len(path) - len(path.split('/')[-1])
-    make_path(path[:end])
-    with open(path, 'w', encoding='utf-8') as file:
+    make_path(file_path)
+    with open(f'{file_path}{file_name}', 'w', encoding='utf-8') as file:
+        file.write(data)
+
+
+def save_result(file_path, data):
+    """
+    save result
+
+    :param file_path: The file location
+    :param file_name: The file name
+    :param data: The data
+    :return:
+    """
+    make_path(file_path)
+    with open(f'{file_path}', 'w', encoding='utf-8') as file:
         file.write(data)
 
 

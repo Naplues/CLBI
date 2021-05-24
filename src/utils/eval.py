@@ -18,6 +18,13 @@ def evaluation(proj, oracle_line_dict, ranked_list_dict, worst_list_dict, defect
     :param effort_cut_off_dict: 工作量 切分点字典
     :return:
     """
+    # print(effort_cut_off_dict)
+
+    # cutoff = 100
+    # # 将Recall@20转换为其他阈值
+    # for file_name in effort_cut_off_dict:
+    #     effort_cut_off_dict[file_name] = int(effort_cut_off_dict[file_name] * 5 * (cutoff / 100))
+
     r_normal = 'normal,' + evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, effort_cut_off_dict)
     r_worst = 'worst,' + evaluator(proj, oracle_line_dict, worst_list_dict, defect_cut_off_dict, effort_cut_off_dict)
     return f'{r_normal}{r_worst}'
@@ -99,12 +106,16 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
     if tp + fn != .0:
         recall_20 = tp / (tp + fn)
 
+    # ################## 按照20%工作量进行切分 工作量感知的排序指标 IFA ########################
     # 统计IFA
     ifa_list = []
     all_list = []  # 代码文件总行数
     for filename, predicted_line_ranks in ranked_list_dict.items():
         ifa = 0
         oracle_line_numbers = oracle_line_dict[filename]
+        # 不统计FP文件上的IFA
+        # if len(oracle_line_numbers) == 0:
+        #     continue
         for line_number in predicted_line_ranks:
             if line_number not in oracle_line_numbers:
                 ifa += 1
@@ -114,45 +125,22 @@ def evaluator(proj, oracle_line_dict, ranked_list_dict, defect_cut_off_dict, eff
 
     ifa_mean = -1 if len(ifa_list) == 0 else int(np.mean(ifa_list))
     ifa_median = -1 if len(ifa_list) == 0 else int(np.median(ifa_list))
-    ifa = ','.join([str(i) for i in ifa_list])
+    ifa_str = ','.join([str(i) for i in ifa_list])
 
-    # ################################# 计算排序指标 MRR MAP ###########################################
-    _mrr, _map, n = .0, .0, .0
+    # ################################# 计算排序指标  ###########################################
     for filename, predicted_line_ranks in ranked_list_dict.items():
         oracle_line_numbers = oracle_line_dict[filename]
-
         for index in range(len(predicted_line_ranks)):
             line_number = predicted_line_ranks[index]
             if line_number in oracle_line_numbers:
                 rank_dict[filename + ':' + str(line_number)] = index
 
-        rr, ap, i, k = .0, .0, 0, len(oracle_line_numbers)
-        n += 1
-        if k == 0:
-            continue
-        for index in range(len(predicted_line_ranks)):
-            line_number = predicted_line_ranks[index]
-            if line_number in oracle_line_numbers:
-                rr = 1. / (index + 1)
-                break
-        _mrr += rr
-        for index in range(len(predicted_line_ranks)):
-            line_number = predicted_line_ranks[index]
-            if line_number in oracle_line_numbers:
-                i += 1
-                ap += float(i) / (index + 1)
-                if i == k:
-                    break
-        _map += ap / k
-
-    _mrr = -1 if n == 0 else _mrr / n
-    _map = -1 if n == 0 else _map / n
-
     # Dump Classification Diff
-    # dump_pk_result(result_path + 'Diff_Classification/' + proj + '.pk', tp_dict)
-    # dump_pk_result(result_path + 'Diff_Ranking/' + proj + '.pk', rank_dict)
-    print('recall\tFAR\td2h\tMCC\tCE\tr_20%\tIFA_avg\tIFA_med')
+    dump_pk_result(result_path + 'Diff_Classification/' + proj + '.pk', tp_dict)
+    dump_pk_result(result_path + 'Diff_Ranking/' + proj + '.pk', rank_dict)
+    # print('recall\tFAR\td2h\tMCC\tCE\tr_20%\tIFA_avg\tIFA_med')
     print('%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\n' % (recall, far, d2h, mcc, ce, recall_20, ifa_mean, ifa_median))
+    # print(ifa_list)
 
     return f'{proj},{recall},{far},{d2h},{mcc},{ce},{recall_20},{ifa_mean},{ifa_median}\n'
     # return f'{proj},{ifa}\n'

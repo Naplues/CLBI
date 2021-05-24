@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from src.models.natural import predict_entropy
+from src.models.natural import predict_global_entropy
 from src.utils.helper import *
 from src.utils.eval import evaluation
 
@@ -16,28 +16,64 @@ def call_number(statement):
     return score
 
 
-def EAMD(text_lines):
+def SATD(text):
+    tags = ['todo', 'hack', 'fixme', 'xxx']
+    number_of_tags = 0
+
+    return number_of_tags
+
+
+def EAMD(release, text, text_lines, labels):
     """
     Effort-Aware ManualDown File-level defect prediction
-    :param text_lines:
+    :param text ['xxx', 'xxx' ..., 'xxx']
+    :param text_lines: [['xxx', 'xxx', ..., 'xxx'], ['xxx', 'xxx', ..., 'xxx'], ..., ['xxx', 'xxx', ..., 'xxx']]
     :return:
     """
+    tags = ['todo', 'hack', 'fixme', 'xxx']
     test_prediction = [0] * len(text_lines)
-    loc = []
-    for src_file_lines in text_lines:
+    # 每个文件的代码行, 自承认技术债
+    loc, debts, score = [], [], []
+    for file_index in range(len(text_lines)):
+        src_file_lines = text_lines[file_index]  # 每个测试文件的代码行列表
         loc.append(len([line for line in src_file_lines if line.strip() != '']))
+
+        src_file = text[file_index]
+        count = 0
+        for tag in tags:
+            if tag in src_file.lower():
+                count += 1
+        debts.append(count)
+
+    # 不包含技术债的文件排除掉
+    score = loc
+    # for file_index in range(len(text_lines)):
+    #     if debts[file_index] == 0:
+    #         score[file_index] = loc[file_index] / 2
+    #
+    # res = 'effort,debts,labels\n'
+    # for index in range(len(text)):
+    #     res += f'{loc[index]},{debts[index]},{labels[index]}\n'
+    # save_csv_result(f'{root_path}temp/', f'{release}.csv', res)
 
     # 全部工作量 和 累积工作量
     effort_all, effort_acc = sum(loc), 0
     # 增序排列索引
-    sorted_index = np.argsort(loc).tolist()
+    sorted_index = np.argsort(score).tolist()
+    # 改为降序排列
     sorted_index.reverse()
+
+    count = 0
     for index in sorted_index:
         if effort_acc < effort_all * 0.5:
+            # if count <= len(loc) / 2:
             test_prediction[index] = 1
             effort_acc += loc[index]
+            count += 1
         else:
             break
+    print(f'{release}-------------------,{effort_acc},{count}')
+
     return np.array(test_prediction)
 
 
@@ -56,6 +92,7 @@ def AccessModel(proj, vector, clf, test_text_lines, test_filename, test_predicti
     :return:
     """
     # 正确bug行号字典 预测bug行号字典 二分类切分点字典 工作量切分点字典
+    # 该字典中存储了测试项目中哪些bug文件包含了哪些bug行,该变量的大小表示测试项目中真正有bug的文件数目
     oracle_line_dict = read_line_level_dataset(proj)
     ranked_list_dict = {}
     worst_list_dict = {}
@@ -80,7 +117,7 @@ def AccessModel(proj, vector, clf, test_text_lines, test_filename, test_predicti
         target_file_index = defect_prone_file_indices[i]
         # 目标文件名
         target_file_name = test_filename[target_file_index]
-        # 有的测试文件(被预测为有bug,但实际上)没有bug,因此不会出现在 oracle 中,这类文件要剔除
+        # 有的测试文件(被预测为有bug,但实际上)没有bug,因此不会出现在 oracle 中,FP,这类文件要剔除,字典值为[]
         if target_file_name not in oracle_line_dict:
             oracle_line_dict[target_file_name] = []
         # 目标文件的代码行列表
@@ -89,7 +126,8 @@ def AccessModel(proj, vector, clf, test_text_lines, test_filename, test_predicti
         # ############################ 重点,怎么给每行赋一个缺陷值 ################################
         # 计算 每一行的权重, 初始为 [0 0 0 0 0 0 ... 0 0], 注意行号从0开始计数
         hit_count = np.array([.0] * len(target_file_lines))
-        lm_score = predict_entropy(target_file_lines, analysis, ngram_dict, prefix_dict, suffix_dict, n_gram_order)
+        lm_score = predict_global_entropy(target_file_lines, analysis, ngram_dict, prefix_dict, suffix_dict,
+                                          n_gram_order)
 
         for index in range(len(target_file_lines)):
             tokens_in_line = tokenizer(target_file_lines[index])
@@ -123,7 +161,7 @@ def AccessModel(proj, vector, clf, test_text_lines, test_filename, test_predicti
             if 'return' in tokens_in_line:
                 hit_count[index] *= weight
 
-            hit_count[index] = (hit_count[index] + 1) * lm_score[index]
+            hit_count[index] = (hit_count[index] + 1)  # * lm_score[index]
         # hit_count = predict_entropy(target_file_lines, analysis, ngram_dict, prefix_dict, suffix_dict, n_gram_order)
 
         # ############################ 重点,怎么给每行赋一个缺陷值 ################################
