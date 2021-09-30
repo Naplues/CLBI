@@ -12,107 +12,62 @@ from sklearn.feature_extraction.text import CountVectorizer
 simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
-root_path = r'D:/CLDP_data/'  # r'C://Users/gzq/Desktop/CLDP_data/'  r'D:/CLDP_data/'
+root_path = r'C://Users/gzq-712/Desktop/CLDP_data/'  # r'C://Users/gzq-712/Desktop/CLDP_data/'  r'D:/CLDP_data/'
 file_level_path = f'{root_path}Dataset/File-level/'
 line_level_path = f'{root_path}Dataset/Line-level/'
 result_path = f'{root_path}Result/'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
 
-projects = [
-    'ambari',
-    'amq',
-    'bookkeeper',
-    'calcite',
-    'camel',
-    'cassandra',
-    'flink',
-    'groovy',
-    'hbase',
-    'hive',
-    'ignite',
-    'log4j2',
-    'mahout',
-    'mng',
-    'nifi',
-    'nutch',
-    'storm',
-    'tika',
-    'ww',
-    'zookeeper',
+# 按照时间排好顺序的releases
+project_release_list = [
+    # 'ambari-1.2.0', 'ambari-2.1.0', 'ambari-2.2.0', 'ambari-2.4.0', 'ambari-2.5.0', 'ambari-2.6.0', 'ambari-2.7.0',
+    # 'amq-5.0.0', 'amq-5.1.0', 'amq-5.2.0', 'amq-5.4.0', 'amq-5.5.0', 'amq-5.6.0', 'amq-5.7.0', 'amq-5.8.0',
+    # 'amq-5.9.0', 'amq-5.10.0', 'amq-5.11.0', 'amq-5.12.0', 'amq-5.14.0', 'amq-5.15.0',
+    # 'bookkeeper-4.0.0', 'bookkeeper-4.2.0', 'bookkeeper-4.4.0',
+    # 'calcite-1.6.0', 'calcite-1.8.0', 'calcite-1.11.0', 'calcite-1.13.0', 'calcite-1.15.0', 'calcite-1.16.0',
+    # 'calcite-1.17.0', 'calcite-1.18.0',
+    # 'camel-2.11.0', 'camel-2.12.0', 'camel-2.13.0', 'camel-2.14.0', 'camel-2.17.0', 'camel-2.18.0', 'camel-2.19.0',
+    # 'cassandra-0.7.4', 'cassandra-0.8.6', 'cassandra-1.0.9', 'cassandra-1.1.6', 'cassandra-1.1.11',
+    # 'cassandra-1.2.11',
+    # 'flink-1.4.0', 'flink-1.6.0',
+    # 'groovy-1.0', 'groovy-1.5.5', 'groovy-1.6.0', 'groovy-1.7.3', 'groovy-1.7.6', 'groovy-1.8.1', 'groovy-1.8.7',
+    # 'groovy-2.1.0', 'groovy-2.1.6', 'groovy-2.4.4', 'groovy-2.4.6', 'groovy-2.4.8', 'groovy-2.5.0', 'groovy-2.5.5',
+    # 'hbase-0.94.1', 'hbase-0.94.5', 'hbase-0.98.0', 'hbase-0.98.5', 'hbase-0.98.11',
+    # 'hive-0.14.0', 'hive-1.2.0', 'hive-2.0.0', 'hive-2.1.0',
+    # 'ignite-1.0.0', 'ignite-1.4.0', 'ignite-1.6.0',
+    # 'log4j2-2.0', 'log4j2-2.1', 'log4j2-2.2', 'log4j2-2.3', 'log4j2-2.4', 'log4j2-2.5', 'log4j2-2.6', 'log4j2-2.7',
+    # 'log4j2-2.8', 'log4j2-2.9', 'log4j2-2.10',
+    # 'mahout-0.3', 'mahout-0.4', 'mahout-0.5', 'mahout-0.6', 'mahout-0.7', 'mahout-0.8',
+    # 'mng-3.0.0', 'mng-3.1.0', 'mng-3.2.0', 'mng-3.3.0', 'mng-3.5.0', 'mng-3.6.0',
+    # 'nifi-0.4.0', 'nifi-1.2.0', 'nifi-1.5.0', 'nifi-1.8.0',
+    # 'nutch-1.1', 'nutch-1.3', 'nutch-1.4', 'nutch-1.5', 'nutch-1.6', 'nutch-1.7', 'nutch-1.8', 'nutch-1.9',
+    # 'nutch-1.10', 'nutch-1.12', 'nutch-1.13', 'nutch-1.14', 'nutch-1.15',
+    # 'storm-0.9.0', 'storm-0.9.3', 'storm-1.0.0', 'storm-1.0.3', 'storm-1.0.5',
+    # 'tika-0.7', 'tika-0.8', 'tika-0.9', 'tika-0.10', 'tika-1.1', 'tika-1.3', 'tika-1.5', 'tika-1.7', 'tika-1.10',
+    # 'tika-1.13', 'tika-1.15', 'tika-1.17',
+    # 'ww-2.0.0', 'ww-2.0.5', 'ww-2.0.10', 'ww-2.1.1', 'ww-2.1.3', 'ww-2.1.7', 'ww-2.2.0', 'ww-2.2.2', 'ww-2.3.1',
+    # 'ww-2.3.4', 'ww-2.3.10', 'ww-2.3.15', 'ww-2.3.17', 'ww-2.3.20', 'ww-2.3.24',
+    # 'zookeeper-3.4.6', 'zookeeper-3.5.1', 'zookeeper-3.5.2', 'zookeeper-3.5.3',
 
-    # 'activemq',
-    # 'camel',
-    # 'derby',
-    # 'groovy',
-    # 'hbase',
-    # 'hive',
-    # 'jruby',
-    # 'lucene',
-    # 'wicket',
-
+    # 'activemq-5.0.0', 'activemq-5.1.0', 'activemq-5.2.0', 'activemq-5.3.0', 'activemq-5.8.0',
+    # 'camel-1.4.0', 'camel-2.9.0', 'camel-2.10.0', 'camel-2.11.0',
+    # 'derby-10.2.1.6', 'derby-10.3.1.4', 'derby-10.5.1.1',
+    # 'groovy-1_5_7', 'groovy-1_6_BETA_1', 'groovy-1_6_BETA_2',
+    # 'hbase-0.94.0', 'hbase-0.95.0', 'hbase-0.95.2',
+    # 'hive-0.9.0', 'hive-0.10.0', 'hive-0.12.0',
+    # 'jruby-1.1', 'jruby-1.4.0', 'jruby-1.5.0', 'jruby-1.7.0.preview1',
+    'lucene-2.3.0', 'lucene-2.9.0',  # 'lucene-3.0.0', 'lucene-3.1',
+    # 'wicket-1.3.0-beta2', 'wicket-1.3.0-incubating-beta-1', 'wicket-1.5.3',
 ]
-
-
-def get_project_release_list():
-    """
-    返回项目名-版本号列表 e.g., activemq-5.0.0
-    :return:
-    """
-    # 按照时间排好顺序的releases
-    return [
-        'ambari-1.2.0', 'ambari-2.1.0', 'ambari-2.2.0', 'ambari-2.4.0', 'ambari-2.5.0', 'ambari-2.6.0', 'ambari-2.7.0',
-        'amq-5.0.0', 'amq-5.1.0', 'amq-5.2.0', 'amq-5.4.0', 'amq-5.5.0', 'amq-5.6.0', 'amq-5.7.0', 'amq-5.8.0',
-        'amq-5.9.0', 'amq-5.10.0', 'amq-5.11.0', 'amq-5.12.0', 'amq-5.14.0', 'amq-5.15.0',
-        'bookkeeper-4.0.0', 'bookkeeper-4.2.0', 'bookkeeper-4.4.0',
-        'calcite-1.6.0', 'calcite-1.8.0', 'calcite-1.11.0', 'calcite-1.13.0', 'calcite-1.15.0', 'calcite-1.16.0',
-        'calcite-1.17.0', 'calcite-1.18.0',
-        'camel-2.11.0', 'camel-2.12.0', 'camel-2.13.0', 'camel-2.14.0', 'camel-2.17.0', 'camel-2.18.0', 'camel-2.19.0',
-        'cassandra-0.7.4', 'cassandra-0.8.6', 'cassandra-1.0.9', 'cassandra-1.1.6', 'cassandra-1.1.11',
-        'cassandra-1.2.11',
-        'flink-1.4.0', 'flink-1.6.0',
-        'groovy-1.0', 'groovy-1.5.5', 'groovy-1.6.0', 'groovy-1.7.3', 'groovy-1.7.6', 'groovy-1.8.1', 'groovy-1.8.7',
-        'groovy-2.1.0', 'groovy-2.1.6', 'groovy-2.4.4', 'groovy-2.4.6', 'groovy-2.4.8', 'groovy-2.5.0', 'groovy-2.5.5',
-        'hbase-0.94.1', 'hbase-0.94.5', 'hbase-0.98.0', 'hbase-0.98.5', 'hbase-0.98.11',
-        'hive-0.14.0', 'hive-1.2.0', 'hive-2.0.0', 'hive-2.1.0',
-        'ignite-1.0.0', 'ignite-1.4.0', 'ignite-1.6.0',
-        'log4j2-2.0', 'log4j2-2.1', 'log4j2-2.2', 'log4j2-2.3', 'log4j2-2.4', 'log4j2-2.5', 'log4j2-2.6', 'log4j2-2.7',
-        'log4j2-2.8', 'log4j2-2.9', 'log4j2-2.10',
-        'mahout-0.3', 'mahout-0.4', 'mahout-0.5', 'mahout-0.6', 'mahout-0.7', 'mahout-0.8',
-        'mng-3.0.0', 'mng-3.1.0', 'mng-3.2.0', 'mng-3.3.0', 'mng-3.5.0', 'mng-3.6.0',
-        'nifi-0.4.0', 'nifi-1.2.0', 'nifi-1.5.0', 'nifi-1.8.0',
-        'nutch-1.1', 'nutch-1.3', 'nutch-1.4', 'nutch-1.5', 'nutch-1.6', 'nutch-1.7', 'nutch-1.8', 'nutch-1.9',
-        'nutch-1.10', 'nutch-1.12', 'nutch-1.13', 'nutch-1.14', 'nutch-1.15',
-        'storm-0.9.0', 'storm-0.9.3', 'storm-1.0.0', 'storm-1.0.3', 'storm-1.0.5',
-        'tika-0.7', 'tika-0.8', 'tika-0.9', 'tika-0.10', 'tika-1.1', 'tika-1.3', 'tika-1.5', 'tika-1.7', 'tika-1.10',
-        'tika-1.13', 'tika-1.15', 'tika-1.17',
-        'ww-2.0.0', 'ww-2.0.5', 'ww-2.0.10', 'ww-2.1.1', 'ww-2.1.3', 'ww-2.1.7', 'ww-2.2.0', 'ww-2.2.2', 'ww-2.3.1',
-        'ww-2.3.4', 'ww-2.3.10', 'ww-2.3.15', 'ww-2.3.17', 'ww-2.3.20', 'ww-2.3.24',
-        'zookeeper-3.4.6', 'zookeeper-3.5.1', 'zookeeper-3.5.2', 'zookeeper-3.5.3',
-        #
-        # 'activemq-5.0.0', 'activemq-5.1.0', 'activemq-5.2.0', 'activemq-5.3.0', 'activemq-5.8.0',
-        # 'camel-1.4.0', 'camel-2.9.0', 'camel-2.10.0', 'camel-2.11.0',
-        # 'derby-10.2.1.6', 'derby-10.3.1.4', 'derby-10.5.1.1',
-        # 'groovy-1_5_7', 'groovy-1_6_BETA_1', 'groovy-1_6_BETA_2',
-        # 'hbase-0.94.0', 'hbase-0.95.0', 'hbase-0.95.2',
-        # 'hive-0.9.0', 'hive-0.10.0', 'hive-0.12.0',
-        # 'jruby-1.1', 'jruby-1.4.0', 'jruby-1.5.0', 'jruby-1.7.0',
-        # 'lucene-2.3.0', 'lucene-2.9.0', 'lucene-3.0.0', 'lucene-3.1',
-        # 'wicket-1.3.0-beta2', 'wicket-1.3.0-incubating-beta-1', 'wicket-1.5.3',
-    ]
-    # return [file.replace(file_level_path_suffix, '') for file in os.listdir(folder)]
 
 
 def get_project_releases_dict():
     """
-    get project releases dict: dict[project] = [releases]
-    返回 项目名 -> 版本号 字典
-    :return:
+    :return: project releases dict: dict[project] = [r1, r2, ..., rn]
     """
-    release_list = get_project_release_list()
-
     project_releases_dict = {}
-    for release in release_list:
+    for release in project_release_list:
         project = release.split('-')[0]
         if project not in project_releases_dict:
             project_releases_dict[project] = [release]
@@ -122,17 +77,23 @@ def get_project_releases_dict():
     return project_releases_dict
 
 
+def get_project_list():
+    """
+    :return: project list: [p1, p2, ..., pn]
+    """
+    return list(get_project_releases_dict().keys())
+
+
 def read_file_level_dataset(proj, file_path=file_level_path):
     """
-    读取文件级别的数据集信息
     :param proj:项目名
     :param file_path
     :return:
     """
-    path = file_path + proj + file_level_path_suffix
-    with open(path, 'r', encoding='utf-8', errors='ignore')as file:
+    path = f'{file_path}{proj}{file_level_path_suffix}'
+    with open(path, 'r', encoding='utf-8', errors='ignore') as file:
         lines = file.readlines()
-        # 文件索引列表, 每个文件名不一样才语句才没有错误 TODO
+        # 文件信息索引列表, 每个文件名不一样该语句才没有错误 TODO line.index(line)
         src_file_indices = [lines.index(line) for line in lines if r',true,"' in line or r',false,"' in line]
         # 源文件路径,需要时返回 OK
         src_files = [lines[index].split(',')[0] for index in src_file_indices]
@@ -142,22 +103,18 @@ def read_file_level_dataset(proj, file_path=file_level_path):
 
         # 行级别的文本语料库
         texts_lines = []
-        for i in range(len(src_file_indices) - 1):
-            # 从当前文件名所在行开始到下一个文件名所在行结束
-            code_lines = lines[src_file_indices[i]:src_file_indices[i + 1]]
+        for i in range(len(src_file_indices)):
+            # 从当前文件名所在行开始到下一个文件名所在行结束的所有代码行
+            s_index = src_file_indices[i]
+            e_index = src_file_indices[i + 1] if i + 1 < len(src_file_indices) else len(lines)
+
+            # xxx 也许需要过滤掉注释行
+            code_lines = [line.strip() for line in lines[s_index:e_index]]
             # 去掉首行中的文件名和标签,以及首行中的引号"
             code_lines[0] = code_lines[0].split(',')[-1][1:]
             # 删除列表中最后的"
-            del code_lines[-1]
+            code_lines = code_lines[:-1]
             texts_lines.append(code_lines)
-
-        # 从当前文件名所在行开始到结束
-        code_lines = lines[src_file_indices[-1]:]
-        # 去掉首行中的文件名和标签, 以及首行中的引号
-        code_lines[0] = code_lines[0].split(',')[-1][1:]
-        # 删除列表中最后的"
-        del code_lines[-1]
-        texts_lines.append(code_lines)
 
         # 多行合并后的文本语料库
         texts = [' '.join(line) for line in texts_lines]
@@ -167,23 +124,20 @@ def read_file_level_dataset(proj, file_path=file_level_path):
 
 def read_line_level_dataset(proj):
     """
-    读取代码行级别的数据集信息
     :param proj: 项目名
     :return: 字典：dict[文件名] = [bug行号]
     """
-    path = line_level_path + proj + line_level_path_suffix
-    with open(path, 'r', encoding='utf-8', errors='ignore')as file:
+    path = f'{line_level_path}{proj}{line_level_path_suffix}'
+    with open(path, 'r', encoding='utf-8', errors='ignore') as file:
         lines = file.readlines()
         file_buggy_lines_dict = {}
-        for line in lines:
-            # 跳过首行
-            if line == 'File,Line_number,SRC\n':
-                continue
-            temp = line.split(',')
-            if temp[0] not in file_buggy_lines_dict:
-                file_buggy_lines_dict[temp[0]] = [int(temp[1])]
+        for line in lines[1:]:
+            temp = line.split(',', 2)
+            file_name, buggy_line_number = temp[0], int(temp[1])
+            if file_name not in file_buggy_lines_dict.keys():
+                file_buggy_lines_dict[file_name] = [buggy_line_number]
             else:
-                file_buggy_lines_dict[temp[0]].append(int(temp[1]))
+                file_buggy_lines_dict[file_name].append(buggy_line_number)
 
     return file_buggy_lines_dict
 
@@ -247,7 +201,7 @@ def combine_cross_results(path):
 
     text_normal = 'Mode,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
     text_worst = 'Mode,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
-    for proj in projects:
+    for proj in get_project_list():
         with open(f'{path}line_level_evaluation_{proj}.csv', 'r') as file:
             count = 0
             for line in file.readlines()[1:]:
@@ -278,7 +232,7 @@ def combine_cross_results_for_each_project(path):
     """
     text_normal = 'Mode,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
     text_worst = 'Mode,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
-    for proj in projects:
+    for proj in get_project_list():
         avg_normal, avg_worst = [.0] * 8, [.0] * 8
         with open(f'{path}line_level_evaluation_{proj}.csv', 'r') as file:
             count = 0
@@ -358,7 +312,7 @@ def dataset_statistics():
     :return:
     """
     print('release name, #files, #buggy files, ratio, #LOC, #buggy LOC, ratio, #tokens')
-    for proj in get_project_release_list():
+    for proj in project_release_list:
         texts, texts_lines, numeric_labels, src_files = read_file_level_dataset(proj)
 
         file_num = len(texts)
@@ -407,7 +361,7 @@ def output_box_data_for_metric():
 
 
 def transform():
-    for release in get_project_release_list():
+    for release in project_release_list:
         data = 'filename,#total lines,#buggy lines,label\n'
         text, text_lines, label, filename = read_file_level_dataset(release)
         file_buggy = read_line_level_dataset(release)
@@ -429,7 +383,7 @@ def make_source_file():
     导出所有source文件
     :return:
     """
-    for release in get_project_release_list():
+    for release in project_release_list:
         # generate all source files of a release
         release_source_path = root_path + 'Dataset/Source/' + release
         make_path(release_source_path)
@@ -441,7 +395,7 @@ def make_source_file():
 
 
 def make_udb_file():
-    for release in get_project_release_list():
+    for release in project_release_list:
         # generate .udb file
         release_source_path = root_path + 'Dataset/Source/' + release
         release_udb_path = root_path + 'Dataset/UDB/' + release
@@ -474,7 +428,7 @@ def remove_test_or_non_java_file_from_dataset():
     移除数据集中的测试文件和非java文件 OK
     :return:
     """
-    for release in get_project_release_list():
+    for release in project_release_list:
         # #### remove test file from file level dataset
         t, texts_lines, numeric_labels, src_files = read_file_level_dataset(release, root_path + 'Dataset/Origin_File/')
 
@@ -495,7 +449,7 @@ def remove_test_or_non_java_file_from_dataset():
         # #### remove test file from line level dataset
         new_line_dataset = 'File,Line_number,SRC\n'
         path = root_path + 'Dataset/Origin_Line/' + release + line_level_path_suffix
-        with open(path, 'r', encoding='utf-8', errors='ignore')as file:
+        with open(path, 'r', encoding='utf-8', errors='ignore') as file:
             lines = file.readlines()
             for line in lines[1:]:
                 if is_test_file(line) or is_non_java_file(line):
@@ -527,4 +481,9 @@ if __name__ == '__main__':
     # output_box_data_for_metric()
     # make_source_file()
     # make_udb_file()
-    dataset_statistics()
+    # dataset_statistics()
+    # print(get_project_list())
+    # print(get_project_releases_dict())
+    # read_file_level_dataset(get_project_releases_dict()['lucene'][0])
+    # read_line_level_dataset(get_project_releases_dict()['lucene'][0])
+    pass

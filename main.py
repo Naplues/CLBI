@@ -16,19 +16,18 @@ Predict = 'Predict'
 Eval = 'Evaluate'
 
 
-# ################# Run cross release predict experiments ###################
+# thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+thresholds = [50]
+
+# ################# Run CR-P experiments ###################
 def run_cross_release_predict(prediction_model, depend_model=None):
-    # thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45]
-    thresholds = [50]
     for threshold in thresholds:
         for project, releases in get_project_releases_dict().items():
             predict_cross_release(project, releases, prediction_model, depend_model, threshold)
 
 
-# ################# Run cross release eval experiments ###################
+# ################# Run CR-E experiments ###################
 def run_cross_release_eval(prediction_model, depend_model=AccessModel, depend=False):
-    # thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45]
-    thresholds = [50]
     for threshold in thresholds:
         for project, releases in get_project_releases_dict().items():
             # depend = True 时, Access 结果 依赖baseline方法, = False 时, 为自身的预测结果
@@ -41,9 +40,10 @@ def run_cross_release_eval(prediction_model, depend_model=AccessModel, depend=Fa
 
 
 if __name__ == '__main__':
+    run_cross_release_predict(LineDP_Model)
     # ============================= Access ====================================
-    run_cross_release_predict(AccessModel)
-    run_cross_release_eval(AccessModel)
+    # run_cross_release_predict(AccessModel)
+    # run_cross_release_eval(AccessModel)
 
     # ======================= SAT-based approaches ============================
     # run_cross_release_predict(PMDModel)
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     # run_cross_release_predict(TMI_SVM_Model)
     # run_cross_release_predict(TMI_DT_Model)
     # run_cross_release_predict(TMI_RF_Model)
-    # run_cross_release_predict(LineDPModel)
+    # run_cross_release_predict(LineDP_Model)
     # run_cross_release_eval(TMI_LR_Model)
     # run_cross_release_eval(TMI_MNB_Model)
     # run_cross_release_eval(TMI_SVM_Model)
@@ -110,4 +110,6 @@ if __name__ == '__main__':
     # run_cross_release_eval(AccessModel, NT_Model, True)
 
     # natural.run_lm()
+    # run_cross_release_predict(LineDP_Model)
+
     pass

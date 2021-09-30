@@ -4,18 +4,20 @@ import warnings
 import numpy as np
 
 from src.models.access import *
+from src.models.explain import LineDP
 from src.models.natural import LM_2_Model
 from src.models.static_analysis_tools import *
 from src.utils.helper import *
 from sklearn import metrics
 from src.utils.eval import evaluation
-from src.models.explain import *
 
 from sklearn.svm import LinearSVC
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
 from sklearn.feature_extraction.text import CountVectorizer
 
@@ -41,47 +43,49 @@ def predict_cross_release(proj_name, releases, studied_model, depend_model=None,
     cp_result_path = f'{root_path}Result/CP/{model_name}_{th}/'
     make_path(cp_result_path)
 
-    # 声明储存预测结果变量
-    oracle_list = []
-    prediction_list = []
-    # 声明储存评估指标变量
-    mcc_list = []
-
-    # print("Training set\t ===> \tTest set.")
+    print("Training set\t ===> \tTest set.")
     for i in range(len(releases) - 1):
-        # 1. 读取数据 训练版本的索引为 i, 测试版本的索引为 i + 1
+        # 1. Loading data. train data index = i, test data index = i + 1
         train_release, test_release = releases[i], releases[i + 1]
-        # print(f'{train_release}\t ===> \t{test_release}')
-        # 源码文本列表 源码文本行级别列表 标签列表 文件名称
-        train_text, train_text_lines, train_label, train_filename = read_file_level_dataset(train_release)
-        test_text, test_text_lines, test_label, test_filename = read_file_level_dataset(test_release)
 
-        # 2. 定义一个矢量器. 拟合矢量器, 将文本特征转换为数值特征, 定义分类器
-        vector = CountVectorizer(lowercase=False, min_df=2)
-        train_vtr = vector.fit_transform(train_text)
-        test_vtr = vector.transform(test_text)
-        clf = None
+        model = LineDP(train_release, test_release)
+        model.file_level_prediction()
 
+        # 4. 储存文件级别的预测结果和评估指标
+        model.analyze_file_level_result()
+        model.save_file_level_result()
+
+        model.line_level_prediction()
+
+        # out_file = f'{cp_result_path}cr_line_level_result_{test_release}.pk'
+        # studied_model(test_release, vector, clf, test_text_lines, test_filename, test_prediction_scores, out_file, th)
+    #
+    # dump_pk_result(f'{cp_result_path}cr_file_level_result_{proj_name}.pk', [oracle_list, prediction_label_list, mcc_list])
+    # print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
+
+
+"""
         # 如果未指定依赖模型, 依赖模型就是预测模型本身,依赖模型用于文件级别的预测
         depend_model = studied_model if depend_model is None else depend_model
-
-        # 3. 进行文件级别的预测, 由依赖模型决定, 得到 test_predictions
+        
         if depend_model == AccessModel \
                 or depend_model == NFC_Model or depend_model == NT_Model \
                 or depend_model == PMDModel or depend_model == CheckStyleModel \
                 or depend_model == LM_2_Model:
+            # Unsupervised models
             # print('File level classifier: Effort-aware ManualDown')
             file_level_out_file = f'{cp_result_path}/cr_file_level_result_{proj_name}.pk'
             if not os.path.exists(file_level_out_file):
-                test_predictions = EAMD(test_release, test_text, test_text_lines, test_label)
+                test_prediction_labels = EAMD(test_release, test_text, test_text_lines, test_labels)
             else:
                 with open(file_level_out_file, 'rb') as file:
-                    test_predictions = pickle.load(file)[1][i]
+                    test_prediction_labels = pickle.load(file)[1][i]
         else:
+            # Supervised models default parameter settings
             # Define MIs-based file-level classifier
             if depend_model == TMI_LR_Model:
                 print('File level classifier: Logistic')
-                clf = LogisticRegression().fit(train_vtr, train_label)
+                clf = LogisticRegression(random_state=0).fit(train_vtr, train_label)
             elif depend_model == TMI_MNB_Model:
                 print('File level classifier: MultinomialNB')
                 clf = MultinomialNB().fit(train_vtr, train_label)
@@ -94,25 +98,13 @@ def predict_cross_release(proj_name, releases, studied_model, depend_model=None,
             elif depend_model == TMI_RF_Model:
                 print('File level classifier: Random Forest')
                 clf = RandomForestClassifier(random_state=0).fit(train_vtr, train_label)
+
             else:
                 print('File level classifier: Line-DP')
-                clf = LogisticRegression().fit(train_vtr, train_label)
+                clf = LogisticRegression(random_state=0).fit(train_vtr, train_label)
 
-            test_predictions = clf.predict(test_vtr)
 
-        # 4. 储存文件级别的预测结果和评估指标
-        oracle_list.append(test_label)
-        prediction_list.append(test_predictions)
-        mcc_list.append(metrics.matthews_corrcoef(test_label, test_predictions))
-
-        # 5. 预测代码行级别的缺陷概率
-        # print('Predicting line level defect prediction')
-        out_file = f'{cp_result_path}cr_line_level_result_{test_release}.pk'
-
-        studied_model(test_release, vector, clf, test_text_lines, test_filename, test_predictions, out_file, th)
-
-    dump_pk_result(f'{cp_result_path}cr_file_level_result_{proj_name}.pk', [oracle_list, prediction_list, mcc_list])
-    # print('Avg MCC:\t%.3f\n' % np.average(mcc_list))
+"""
 
 
 def eval_cross_release(proj_name, releases, studied_model, depend_model=None, th=50, depend=False):

@@ -5,7 +5,7 @@ from src.utils.helper import *
 
 def TP_FP(cp_result_path):
     result = 'project,TP,FP\n'
-    for project in projects:
+    for project in get_project_list():
         tp, fp, tn, fn, p, r, f1, mcc = 0, 0, 0, 0, .0, .0, .0, .0
         data = read_data_from_file(f'{cp_result_path}/file_level_evaluation_{project}.csv')
         l = len(data[1:])
