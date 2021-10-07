@@ -53,7 +53,6 @@ def predict_cross_release(proj_name, releases, studied_model, depend_model=None,
 
         # 4. 储存文件级别的预测结果和评估指标
         model.analyze_file_level_result()
-        model.save_file_level_result()
 
         model.line_level_prediction()
 

@@ -15,9 +15,9 @@ simplefilter(action='ignore', category=FutureWarning)
 Predict = 'Predict'
 Eval = 'Evaluate'
 
-
 # thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 thresholds = [50]
+
 
 # ################# Run CR-P experiments ###################
 def run_cross_release_predict(prediction_model, depend_model=None):

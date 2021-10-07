@@ -1,10 +1,10 @@
 # -*- coding:utf-8 -*-
 import math
-import pprint
 import time
 
 import dill
 import numpy as np
+import pandas as pd
 from lime.lime_tabular import LimeTabularExplainer
 from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
@@ -62,7 +62,7 @@ def preprocess_code_line(code, remove_python_common_tokens=False):
     return processed_code.strip()
 
 
-def get_LIME_explainer(proj_name, train_feature, feature_names):
+def get_lime_explainer(proj_name, train_feature, feature_names):
     LIME_explainer_path = '../final_model/' + proj_name + '_LIME_RF_DE_SMOTE_min_df_3.pkl'
     class_names = ['not defective', 'defective']  # this is fine...
     if not os.path.exists(LIME_explainer_path):
@@ -96,45 +96,55 @@ class BaseModel(object):
             read_file_level_dataset(test_release)
         # line level data
         self.oracle_line_dict = read_line_level_dataset(self.test_release)
+        self.oracle_line_list = self.make_oracle_line_list()
+
+    def make_oracle_line_list(self):
+        oracle_line_list = []
+        for file_name in self.oracle_line_dict:
+            oracle_line_list.extend([f'{file_name}:{line}' for line in self.oracle_line_dict[file_name]])
+        return oracle_line_list
 
 
 class LineDP(BaseModel):
-    # 所有项目的数据 声明储存预测结果变量 声明储存评估指标变量
-    oracle_list = []
-    prediction_label_list = []
-    prediction_score_list = []
-    mcc_list = []
+    # File level evaluation metrics
+    precision_list = {}
+    recall_list = {}
+    f1_list = {}
+    acc_list = {}
+    mcc_list = {}
     threshold = 50
 
     def __init__(self, train_release, test_release):
         super().__init__(train_release, test_release)
+        # file path
         self.cp_result_path = f'{root_path}Result/CP/LineDP_{self.threshold}/'
+        self.file_level_result_path = f'{self.cp_result_path}file_result/'
+        self.line_level_result_path = f'{self.cp_result_path}line_result/'
+
         self.vector = CountVectorizer(lowercase=False, min_df=2)
         self.clf = LogisticRegression(random_state=0)
-        self.test_prediction_labels = []
-        self.test_prediction_scores = []
+        self.test_pred_labels = []
+        self.test_pred_scores = []
 
     def file_level_prediction(self):
         print(f'{self.train_release}\t ===> \t{self.test_release}')
-        # Extracting features
-        # 2. 定义一个矢量器. 拟合矢量器, 将文本特征转换为数值特征, 定义分类器
-        # Neither perform lowercase, stemming, nor lemmatization
-        # Remove tokens that appear only once
+        # 2. Convert text feature into numerical feature, classifier
+        # Neither perform lowercase, stemming, nor lemmatization. Remove tokens that appear only once
         train_vtr = self.vector.fit_transform(self.train_text)
         test_vtr = self.vector.transform(self.test_text)
         # 3. Predict defective files, 由依赖模型决定, 得到 test_predictions
         self.clf.fit(train_vtr, self.train_label)
-        self.test_prediction_labels = self.clf.predict(test_vtr)
-        self.test_prediction_scores = np.array([score[1] for score in self.clf.predict_proba(test_vtr)])
+        self.test_pred_labels = self.clf.predict(test_vtr)
+        self.test_pred_scores = np.array([score[1] for score in self.clf.predict_proba(test_vtr)])
 
     def analyze_file_level_result(self):
-        assert len(self.test_labels) == len(self.test_prediction_labels), 'len not equal'
+        assert len(self.test_labels) == len(self.test_pred_labels), 'len not equal'
 
         total_file, identified_file, total_line, identified_line = 0, 0, 0, 0
         for index in range(len(self.test_labels)):
             if self.test_labels[index] == 1:
                 buggy_line = len(self.oracle_line_dict[self.test_filename[index]])
-                if self.test_prediction_labels[index] == 1:
+                if self.test_pred_labels[index] == 1:
                     identified_line += buggy_line
                     identified_file += 1
                 total_line += buggy_line
@@ -143,13 +153,26 @@ class LineDP(BaseModel):
         print(f'Buggy file info: {identified_file}/{total_file} - {round(identified_file / total_file * 100, 1)}%')
         print(f'Buggy line info: {identified_line}/{total_line} - {round(identified_line / total_line * 100, 1)}%')
 
-        return total_file, identified_file, total_line, identified_line
+        # File level evaluation
+        with open(f'{self.file_level_result_path}evaluation.csv', 'a') as file:
+            file.write(f'{self.test_release},'
+                       f'{metrics.precision_score(self.test_labels, self.test_pred_labels)},'
+                       f'{metrics.recall_score(self.test_labels, self.test_pred_labels)},'
+                       f'{metrics.f1_score(self.test_labels, self.test_pred_labels)},'
+                       f'{metrics.accuracy_score(self.test_labels, self.test_pred_labels)},'
+                       f'{metrics.matthews_corrcoef(self.test_labels, self.test_pred_labels)},'
+                       f'{identified_file}/{total_file},'
+                       f'{identified_line}/{total_line},'
+                       f'\n')
 
-    def save_file_level_result(self):
-        self.oracle_list.append(self.test_labels)
-        self.prediction_label_list.append(self.test_prediction_labels)
-        self.prediction_score_list.append(self.test_prediction_scores)
-        self.mcc_list.append(metrics.matthews_corrcoef(self.test_labels, self.test_prediction_labels))
+        # File level result
+        data = {'filename': self.test_filename,
+                'oracle': self.test_labels,
+                'predicted_label': self.test_pred_labels,
+                'predicted_score': self.test_pred_scores}
+        data = pd.DataFrame(data, columns=['filename', 'oracle', 'predicted_label', 'predicted_score'])
+        data.to_csv(f'{self.file_level_result_path}{self.project_name}/{self.test_release}-result.csv', index=False)
+        return
 
     def line_level_prediction(self):
         """
@@ -158,20 +181,11 @@ class LineDP(BaseModel):
         print('Predicting line level defect prediction of LineDP')
         # 正确bug行号字典 预测bug行号字典 二分类切分点字典 工作量切分点字典
         ranked_list_dict, worst_list_dict = {}, {}
-        oracle_line_list = []
-        for file_name in self.oracle_line_dict:
-            oracle_line_list.extend([f'{file_name}:{line}' for line in self.oracle_line_dict[file_name]])
+        # Buggy lines 
+        predicted_lines, predicted_line_score, num_clean_lines = [], [], []
 
-        predicted_line_no = []
-        predicted_line_score = []
-        num_clean_lines = 0
-
-        # Indices of defective files
-        defective_file_indices = [index for index in range(len(self.test_prediction_labels)) if
-                                  self.test_prediction_labels[index] == 1]
-
-        # Ranks of defective files
-        defective_file_ranks = np.argsort([-x for x in self.test_prediction_scores if x > 0.5])
+        # Indices of defective files in descending order according to the prediction scores
+        defective_file_index = [i for i in np.argsort(self.test_pred_scores)[::-1] if self.test_pred_labels[i] == 1]
 
         # Text tokenizer
         tokenizer = self.vector.build_tokenizer()
@@ -181,57 +195,53 @@ class LineDP(BaseModel):
 
         # Explain each defective file to predict the buggy lines exist in the file.
         # Process each file according to the order of defective rank list.
-        for i in range(len(defective_file_indices)):
-            defective_file_index = defective_file_indices[defective_file_ranks[i]]
-            defective_file_name = self.test_filename[defective_file_index]
-
+        for i in range(len(defective_file_index)):
+            defective_filename = self.test_filename[defective_file_index[i]]
             # Some files are predicted as defective, but they are actually clean (i.e., FP files).
-            # These FP files do not exist in the oracle_line_dict. Therefore, the corresponding values of these files are []
-            if defective_file_name not in self.oracle_line_dict:
-                self.oracle_line_dict[defective_file_name] = []
+            # These FP files do not exist in the oracle. Therefore, the corresponding values of these files are []
+            if defective_filename not in self.oracle_line_dict:
+                self.oracle_line_dict[defective_filename] = []
             # The code lines list of each corresponding predicted defective file
-            defective_file_line_list = self.test_text_lines[defective_file_index]
+            defective_file_line_list = self.test_text_lines[defective_file_index[i]]
 
             # ####################################### Core Section #################################################
-            # 对分类结果进行解释
-            exp = explainer.explain_instance(' '.join(defective_file_line_list),
-                                             c.predict_proba,
-                                             num_features=100,
-                                             num_samples=5000)
-            # Extract top20 risky tokens   maybe less than 20
+            # Explain each defective file
+            exp = explainer.explain_instance(' '.join(defective_file_line_list), c.predict_proba, num_features=100)
+            # Extract top@20 risky tokens with positive scores. maybe less than 20
             risky_tokens = [x[0] for x in exp.as_list() if x[1] > 0][:20]
 
             # Count the number of risky tokens occur in each line.
             # The init value for each element of hit_count is [0 0 0 0 0 0 ... 0 0]. Note that line number index from 0.
-            hit_count = np.array([0] * len(defective_file_line_list))
+            num_of_lines = len(defective_file_line_list)
+            hit_count = np.array([0] * num_of_lines)
 
-            for line_index in range(len(defective_file_line_list)):
+            for line_index in range(num_of_lines):
                 # Extract all tokens in the line with their original form.
                 tokens_in_line = tokenizer(defective_file_line_list[line_index])
                 # Check whether all risky tokens occurs in the line and count the number.
-                for risk_token in risky_tokens:
-                    if risk_token in tokens_in_line:
+                for token in tokens_in_line:
+                    if token in risky_tokens:
                         hit_count[line_index] += 1
+
             # ####################################### Core Section #################################################
             # Predicted buggy lines
-            predicted_line_no.extend(
-                [f'{defective_file_name}:{i + 1}' for i in range(len(hit_count)) if hit_count[i] > 0])
-            predicted_line_score.extend([hit_count[i] for i in range(len(hit_count)) if hit_count[i] > 0])
-            num_clean_lines += len([i for i in hit_count if i > 0]) - len(self.oracle_line_dict[defective_file_name])
+            predicted_lines.extend([f'{defective_filename}:{i + 1}' for i in range(num_of_lines) if hit_count[i] > 0])
+            predicted_line_score.extend([hit_count[i] for i in range(num_of_lines) if hit_count[i] > 0])
+            # num_clean_lines += len([i for i in hit_count if i > 0]) - len(self.oracle_line_dict[defective_filename])
 
             # 根据命中次数对所有代码行进行降序排序, 按照排序后数值从大到小的顺序显示每个元素在原列表中的索引(i.e., 行号-1)
             # line + 1,因为原列表中代表行号的索引是从0开始计数而不是从1开始
-            sorted_index = np.argsort(-hit_count)
+            sorted_index = np.argsort(hit_count)[::-1]
             sorted_line_number = [line + 1 for line in sorted_index.tolist()]
             # 原始未经过调整的列表
-            ranked_list_dict[defective_file_name] = sorted_line_number
+            ranked_list_dict[defective_filename] = sorted_line_number
 
             # ############################ Worst rank theoretically ###########################
             # 需要调整为最差排序的列表,当分数相同时
             worst_line_number = list(sorted_line_number)
             sorted_list = hit_count[sorted_index]
             worse_list, current_score, start_index, oracle_lines = [], -1, -1, self.oracle_line_dict[
-                defective_file_name]
+                defective_filename]
             for ii in range(len(sorted_list)):
                 if sorted_list[ii] != current_score:
                     current_score = sorted_list[ii]
@@ -241,13 +251,20 @@ class LineDP(BaseModel):
                     for t in range(ii, start_index, -1):
                         worst_line_number[t] = worst_line_number[t - 1]
                     worst_line_number[start_index] = temp
-            worst_list_dict[defective_file_name] = worst_line_number
+            worst_list_dict[defective_filename] = worst_line_number
             # ############################ Worst rank theoretically ###########################
-            print(f'{i}/{len(defective_file_indices)}')
+            print(f'{i}/{len(defective_file_index)}')
+
         # Ranked buggy lines
         predicted_line_score = np.array(predicted_line_score)
-        predicted_line_no = np.array(predicted_line_no)
-        sorted_line_no = predicted_line_no[np.argsort(-predicted_line_score)]
+        predicted_lines = np.array(predicted_lines)
+        sorted_line_no = predicted_lines[np.argsort(-predicted_line_score)]
+
+
+if __name__ == '__main__':
+    a = 'abc'
+    print(f'{a}'
+          f'{a}')
 
 
 # OK 进行代码行级别的排序
