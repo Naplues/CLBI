@@ -49,13 +49,12 @@ def predict_cross_release(proj_name, releases, studied_model, depend_model=None,
         train_release, test_release = releases[i], releases[i + 1]
 
         model = LineDP(train_release, test_release)
-        model.file_level_prediction()
 
-        # 4. 储存文件级别的预测结果和评估指标
+        model.file_level_prediction()
         model.analyze_file_level_result()
 
         model.line_level_prediction()
-
+        model.analyze_line_level_result()
         # out_file = f'{cp_result_path}cr_line_level_result_{test_release}.pk'
         # studied_model(test_release, vector, clf, test_text_lines, test_filename, test_prediction_scores, out_file, th)
     #
