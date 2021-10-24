@@ -1,137 +1,28 @@
 # -*- coding:utf-8 -*-
 import math
-import os
-import time
 
-import dill
-import numpy as np
 import pandas as pd
-from lime.lime_tabular import LimeTabularExplainer
-from sklearn.linear_model import LogisticRegression
-from sklearn import metrics
+
+from src.models.base_model import BaseModel
 from src.utils.helper import *
 from src.utils.eval import evaluation
+
 from lime.lime_text import LimeTextExplainer
+
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-
-random_seed = 0  # random seed is set as 0-9
-python_common_tokens = ['abs', 'delattr', 'hash', 'memoryview', 'set', 'all', 'dict', 'help', 'min', 'setattr', 'any',
-                        'dir', 'hex', 'next', 'slice', 'ascii', 'divmod', 'id', 'object', 'sorted', 'bin', 'enumerate',
-                        'input', 'oct', 'staticmethod', 'bool', 'eval', 'int', 'open', 'str', 'breakpoint', 'exec',
-                        'isinstance', 'ord', 'sum', 'bytearray', 'filter', 'issubclass', 'pow', 'super', 'bytes',
-                        'float', 'iter', 'print', 'tuple', 'callable', 'format', 'len', 'property', 'type', 'chr',
-                        'frozenset', 'list', 'range', 'vars', 'classmethod', 'getattr', 'locals', 'repr', 'zip',
-                        'compile', 'globals', 'map', 'reversed', '__import__', 'complex', 'hasattr', 'max', 'round',
-                        'False', 'await', 'else', 'import', 'passNone', 'break', 'except', 'in', 'raise', 'True',
-                        'class', 'finally', 'is', 'return', 'and', 'continue', 'for', 'lambda', 'try', 'as', 'def',
-                        'from', 'nonlocal', 'while', 'assert', 'del', 'global', 'not', 'with', 'async', 'elif', 'if',
-                        'or', 'yield', 'self']
-
-
-def preprocess_code_line(code, remove_python_common_tokens=False):
-    """
-    OK
-    对代码进行预处理
-    :param code:
-    :param remove_python_common_tokens:
-    :return:
-    """
-    code = code.replace('(', ' ') \
-        .replace(')', ' ') \
-        .replace('{', ' ') \
-        .replace('}', ' ') \
-        .replace('[', ' ') \
-        .replace(']', ' ') \
-        .replace('.', ' ') \
-        .replace(':', ' ') \
-        .replace(';', ' ') \
-        .replace(',', ' ') \
-        .replace(' _ ', '_')
-    code = re.sub('``.*``', '<STR>', code)
-    code = re.sub("'.*'", '<STR>', code)
-    code = re.sub('".*"', '<STR>', code)
-    code = re.sub('\d+', '<NUM>', code)
-
-    processed_code = code
-    if remove_python_common_tokens:
-        new_code = ''
-        for tok in code.split():
-            if tok not in python_common_tokens:
-                new_code = new_code + tok + ' '
-        processed_code = new_code.strip()
-    return processed_code.strip()
-
-
-def get_lime_explainer(proj_name, train_feature, feature_names):
-    LIME_explainer_path = '../final_model/' + proj_name + '_LIME_RF_DE_SMOTE_min_df_3.pkl'
-    class_names = ['not defective', 'defective']  # this is fine...
-    if not os.path.exists(LIME_explainer_path):
-        start = time.time()
-        # get features in train_df here
-        print('start training LIME explainer')
-
-        explainer = LimeTabularExplainer(train_feature,
-                                         feature_names=feature_names,
-                                         class_names=class_names,
-                                         discretize_continuous=False,
-                                         random_state=42)
-        dill.dump(explainer, open(LIME_explainer_path, 'wb'))
-        print('finish training LIME explainer in', time.time() - start, 'secs')
-    else:
-        explainer = dill.load(open(LIME_explainer_path, 'rb'))
-
-    return explainer
-
-
-class BaseModel(object):
-    def __init__(self, train_release, test_release):
-        np.random.seed(0)
-        self.project_name = train_release.split('-')[0]
-        self.cp_result_path = ''
-        self.train_release = train_release
-        self.test_release = test_release
-        # file level data
-        self.train_text, self.train_text_lines, self.train_label, self.train_filename = \
-            read_file_level_dataset(train_release)
-        self.test_text, self.test_text_lines, self.test_labels, self.test_filename = \
-            read_file_level_dataset(test_release)
-
-        # line level data
-        self.oracle_line_dict = read_line_level_dataset(self.test_release)
-        self.actual_buggy_lines = self.get_actual_buggy_lines()  # set
-        self.predicted_buggy_lines = []
-        self.predicted_buggy_score = []
-        self.total_lines_in_defective_files = 0
-
-    def get_actual_buggy_lines(self):
-        oracle_line_list = set()
-        for file_name in self.oracle_line_dict:
-            oracle_line_list.update([f'{file_name}:{line}' for line in self.oracle_line_dict[file_name]])
-        return oracle_line_list
+from sklearn.linear_model import LogisticRegression
 
 
 class LineDP(BaseModel):
-    # File level evaluation metrics
-    threshold = 50
+    model_name = 'LineDP'
 
     def __init__(self, train_release, test_release):
         super().__init__(train_release, test_release)
-        # file path
-        self.cp_result_path = f'{root_path}Result/CP/LineDP_{self.threshold}/'
-        self.file_level_result_path = f'{self.cp_result_path}file_result/'
-        self.line_level_result_path = f'{self.cp_result_path}line_result/'
-        self.init_file_path()
-        # classifier
+
+        # File level classifier
         self.vector = CountVectorizer(lowercase=False, min_df=2)
         self.clf = LogisticRegression(random_state=0)
-        self.test_pred_labels = []
-        self.test_pred_scores = []
-
-    def init_file_path(self):
-        make_path(self.cp_result_path)
-        make_path(self.file_level_result_path)
-        make_path(self.line_level_result_path)
 
     def file_level_prediction(self):
         print(f'{self.train_release}\t ===> \t{self.test_release}')
@@ -144,50 +35,6 @@ class LineDP(BaseModel):
         self.test_pred_labels = self.clf.predict(test_vtr)
         self.test_pred_scores = np.array([score[1] for score in self.clf.predict_proba(test_vtr)])
 
-    def analyze_file_level_result(self):
-        assert len(self.test_labels) == len(self.test_pred_labels), 'The lengths are not equal'
-
-        total_file, identified_file, total_line, identified_line = 0, 0, 0, 0
-        for index in range(len(self.test_labels)):
-            if self.test_labels[index] == 1:
-                buggy_line = len(self.oracle_line_dict[self.test_filename[index]])
-                if self.test_pred_labels[index] == 1:
-                    identified_line += buggy_line
-                    identified_file += 1
-                total_line += buggy_line
-                total_file += 1
-
-        print(f'Buggy file info: {identified_file}/{total_file} - {round(identified_file / total_file * 100, 1)}%')
-        print(f'Buggy line info: {identified_line}/{total_line} - {round(identified_line / total_line * 100, 1)}%')
-
-        # File level result
-        out_result_path = f'{self.file_level_result_path}{self.project_name}/{self.test_release}-result.csv'
-        if os.path.exists(out_result_path):
-            return
-        data = {'filename': self.test_filename,
-                'oracle': self.test_labels,
-                'predicted_label': self.test_pred_labels,
-                'predicted_score': self.test_pred_scores}
-        data = pd.DataFrame(data, columns=['filename', 'oracle', 'predicted_label', 'predicted_score'])
-        data.to_csv(out_result_path, index=False)
-
-        # File level evaluation
-        out_evaluation_path = f'{self.file_level_result_path}evaluation.csv'
-        append_title = True if not os.path.exists(out_evaluation_path) else False
-        title = 'release,precision,recall,f1-score,accuracy,mcc,identified/total files,max identified/total lines\n'
-        with open(out_evaluation_path, 'a') as file:
-            file.write(title) if append_title else None
-            file.write(f'{self.test_release},'
-                       f'{metrics.precision_score(self.test_labels, self.test_pred_labels)},'
-                       f'{metrics.recall_score(self.test_labels, self.test_pred_labels)},'
-                       f'{metrics.f1_score(self.test_labels, self.test_pred_labels)},'
-                       f'{metrics.accuracy_score(self.test_labels, self.test_pred_labels)},'
-                       f'{metrics.matthews_corrcoef(self.test_labels, self.test_pred_labels)},'
-                       f'{identified_file}/{total_file},'
-                       f'{identified_line}/{total_line},'
-                       f'\n')
-        return
-
     def line_level_prediction(self):
         """
         :return: Ranking line-level defect-prone lines using Line_DP model. OK
@@ -196,7 +43,7 @@ class LineDP(BaseModel):
         # 正确bug行号字典 预测bug行号字典 二分类切分点字典 工作量切分点字典
         ranked_list_dict, worst_list_dict = {}, {}
         # Buggy lines 
-        predicted_lines, predicted_score, total_lines = [], [], 0
+        predicted_lines, predicted_score, predicted_density, total_lines = [], [], [], 0
 
         # Indices of defective files in descending order according to the prediction scores
         defective_file_index = [i for i in np.argsort(self.test_pred_scores)[::-1] if self.test_pred_labels[i] == 1]
@@ -205,11 +52,12 @@ class LineDP(BaseModel):
         tokenizer = self.vector.build_tokenizer()
         c = make_pipeline(self.vector, self.clf)
         # Define an explainer
-        explainer = LimeTextExplainer(class_names=['defect', 'non-defect'], random_state=random_seed)
+        explainer = LimeTextExplainer(class_names=['defect', 'non-defect'], random_state=self.random_seed)
 
         # Explain each defective file to predict the buggy lines exist in the file.
         # Process each file according to the order of defective rank list.
         for i in range(len(defective_file_index)):
+            print(f'{i}/{len(defective_file_index)}')
             defective_filename = self.test_filename[defective_file_index[i]]
             # Some files are predicted as defective, but they are actually clean (i.e., FP files).
             # These FP files do not exist in the oracle. Therefore, the corresponding values of these files are []
@@ -223,12 +71,11 @@ class LineDP(BaseModel):
             exp = explainer.explain_instance(' '.join(defective_file_line_list), c.predict_proba, num_features=100)
             # Extract top@20 risky tokens with positive scores. maybe less than 20
             risky_tokens = [x[0] for x in exp.as_list() if x[1] > 0][:20]
-            print(risky_tokens)
 
             # Count the number of risky tokens occur in each line.
             # The init value for each element of hit_count is [0 0 0 0 0 0 ... 0 0]. Note that line number index from 0.
             num_of_lines = len(defective_file_line_list)
-            hit_count = np.array([0] * num_of_lines)
+            hit_count = np.zeros(num_of_lines, dtype=int)
 
             for line_index in range(num_of_lines):
                 # Extract all tokens in the line with their original form.
@@ -240,82 +87,22 @@ class LineDP(BaseModel):
 
             # ####################################### Core Section #################################################
             # Predicted buggy lines
-            predicted_lines.extend([f'{defective_filename}:{i + 1}' for i in range(num_of_lines) if hit_count[i] > 0])
             predicted_score.extend([hit_count[i] for i in range(num_of_lines) if hit_count[i] > 0])
-
-            # 根据命中次数对所有代码行进行降序排序, 按照排序后数值从大到小的顺序显示每个元素在原列表中的索引(i.e., 行号-1)
-            # line + 1,因为原列表中代表行号的索引是从0开始计数而不是从1开始
-            sorted_index = np.argsort(hit_count)[::-1]
-            sorted_line_number = [line + 1 for line in sorted_index.tolist()]
-            # 原始未经过调整的列表
-            ranked_list_dict[defective_filename] = sorted_line_number
-
-            # ############################ Worst rank theoretically ###########################
-            # 需要调整为最差排序的列表,当分数相同时
-            worst_line_number = list(sorted_line_number)
-            sorted_list = hit_count[sorted_index]
-            worse_list, current_score, start_index, oracle_lines = [], -1, -1, self.oracle_line_dict[
-                defective_filename]
-            for ii in range(len(sorted_list)):
-                if sorted_list[ii] != current_score:
-                    current_score = sorted_list[ii]
-                    start_index = ii
-                elif worst_line_number[ii] not in oracle_lines:
-                    temp = worst_line_number[ii]  # 取出这个无bug的行号
-                    for t in range(ii, start_index, -1):
-                        worst_line_number[t] = worst_line_number[t - 1]
-                    worst_line_number[start_index] = temp
-            worst_list_dict[defective_filename] = worst_line_number
-            # ############################ Worst rank theoretically ###########################
-            print(f'{i}/{len(defective_file_index)}')
-
-        # Ranked buggy lines
-        # predicted_score = np.array(predicted_score)
-        # predicted_lines = np.array(predicted_lines)
-        # sorted_line_no = predicted_lines[np.argsort(-predicted_score)]
+            predicted_lines.extend([f'{defective_filename}:{i + 1}' for i in range(num_of_lines) if hit_count[i] > 0])
+            density = f'{len(np.where(hit_count > 0)) / len(hit_count)}'
+            predicted_density.extend([density for i in range(num_of_lines) if hit_count[i] > 0])
 
         self.predicted_buggy_lines = predicted_lines
         self.predicted_buggy_score = predicted_score
+        self.predicted_density = predicted_density
         self.total_lines_in_defective_files = total_lines
 
         # Line level result
-        out_result_path = f'{self.line_level_result_path}{self.project_name}/{self.test_release}-result.csv'
-        if os.path.exists(out_result_path):
-            return
         data = {'predicted_buggy_lines': self.predicted_buggy_lines,
-                'predicted_buggy_score': self.predicted_buggy_score}
-        data = pd.DataFrame(data, columns=['predicted_buggy_lines', 'predicted_buggy_score'])
-        data.to_csv(out_result_path, index=False)
-
-    def analyze_line_level_result(self):
-        # classification performance indicators
-        tp = len(self.actual_buggy_lines.intersection(self.predicted_buggy_lines))
-        fp = len(self.predicted_buggy_lines) - tp
-        fn = len(self.actual_buggy_lines) - tp
-        tn = self.total_lines_in_defective_files - tp - fp - fn
-
-        precision = .0 if tp + fp == .0 else tp / (tp + fp)
-        recall = .0 if tp + fn == .0 else tp / (tp + fn)
-        far = .0 if fp + tn == 0 else fp / (fp + tn)
-        ce = .0 if fn + tn == .0 else fn / (fn + tn)
-
-        d2h = math.sqrt(math.pow(1 - recall, 2) + math.pow(0 - far, 2)) / math.sqrt(2)
-        mcc = .0 if tp + fp == .0 or tp + fn == .0 or tn + fp == .0 or tn + fn == .0 else \
-            (tp * tn - fp * fn) / math.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
-
-        # ranking performance indicators
-        for it in range(100):
-            predicted_buggy_lines = self.predicted_buggy_lines
-            predicted_buggy_score = [score + np.random.random() for score in self.predicted_buggy_score]
-            sorted_index = np.argsort(predicted_buggy_score)[::-1]
-
-        out_evaluation_path = f'{self.line_level_result_path}evaluation.csv'
-        append_title = True if not os.path.exists(out_evaluation_path) else False
-        title = 'release,precision,recall,far,ce,d2h,mcc\n'
-        with open(out_evaluation_path, 'a') as file:
-            file.write(title) if append_title else None
-            file.write(f'{self.test_release},{precision},{recall},{far},{ce},{d2h},{mcc}\n')
-        return
+                'predicted_buggy_score': self.predicted_buggy_score,
+                'predicted_density': self.predicted_density}
+        data = pd.DataFrame(data, columns=['predicted_buggy_lines', 'predicted_buggy_score', 'predicted_density'])
+        data.to_csv(self.line_level_result_file, index=False)
 
 
 # OK 进行代码行级别的排序
@@ -355,7 +142,7 @@ def LineDP_Model(proj, vector, classifier, test_text_lines, test_filename, test_
     tokenizer = vector.build_tokenizer()
     c = make_pipeline(vector, classifier)
     # Define an explainer
-    explainer = LimeTextExplainer(class_names=['defect', 'non-defect'], random_state=random_seed)
+    explainer = LimeTextExplainer(class_names=['defect', 'non-defect'], random_state=0)
 
     # Explain each defective file to predict the buggy lines exist in the file.
     # Process each file according to the order of defective rank list.

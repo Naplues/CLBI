@@ -12,7 +12,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
-root_path = r'C://Users/gzq/Desktop/CLDP_data/'  # r'C://Users/gzq/Desktop/CLDP_data/'  r'D:/CLDP_data/'
+root_path = r'C://Users/gzq-712/Desktop/CLDP_data/'  # r'C://Users/gzq/Desktop/CLDP_data/'  ' r'/root/line-dp/CLDP_data/'
 file_level_path = f'{root_path}Dataset/File-level/'
 line_level_path = f'{root_path}Dataset/Line-level/'
 result_path = f'{root_path}Result/'
@@ -50,15 +50,15 @@ project_release_list = [
     # 'ww-2.3.4', 'ww-2.3.10', 'ww-2.3.15', 'ww-2.3.17', 'ww-2.3.20', 'ww-2.3.24',
     # 'zookeeper-3.4.6', 'zookeeper-3.5.1', 'zookeeper-3.5.2', 'zookeeper-3.5.3',
 
-    # 'activemq-5.0.0', 'activemq-5.1.0', 'activemq-5.2.0', 'activemq-5.3.0', 'activemq-5.8.0',
-    # 'camel-1.4.0', 'camel-2.9.0', 'camel-2.10.0', 'camel-2.11.0',
-    # 'derby-10.2.1.6', 'derby-10.3.1.4', 'derby-10.5.1.1',
-    # 'groovy-1_5_7', 'groovy-1_6_BETA_1', 'groovy-1_6_BETA_2',
-    # 'hbase-0.94.0', 'hbase-0.95.0', 'hbase-0.95.2',
-    # 'hive-0.9.0', 'hive-0.10.0', 'hive-0.12.0',
-    # 'jruby-1.1', 'jruby-1.4.0', 'jruby-1.5.0', 'jruby-1.7.0.preview1',
+    'activemq-5.0.0', 'activemq-5.1.0', 'activemq-5.2.0', 'activemq-5.3.0', 'activemq-5.8.0',
+    'camel-1.4.0', 'camel-2.9.0', 'camel-2.10.0', 'camel-2.11.0',
+    'derby-10.2.1.6', 'derby-10.3.1.4', 'derby-10.5.1.1',
+    'groovy-1_5_7', 'groovy-1_6_BETA_1', 'groovy-1_6_BETA_2',
+    'hbase-0.94.0', 'hbase-0.95.0', 'hbase-0.95.2',
+    'hive-0.9.0', 'hive-0.10.0', 'hive-0.12.0',
+    'jruby-1.1', 'jruby-1.4.0', 'jruby-1.5.0', 'jruby-1.7.0.preview1',
     'lucene-2.3.0', 'lucene-2.9.0',  # 'lucene-3.0.0', 'lucene-3.1',
-    # 'wicket-1.3.0-beta2', 'wicket-1.3.0-incubating-beta-1', 'wicket-1.5.3',
+    'wicket-1.3.0-beta2', 'wicket-1.3.0-incubating-beta-1', 'wicket-1.5.3',
 ]
 
 
@@ -474,6 +474,48 @@ def export_all_files_in_project(path):
                 continue
             file_list.append(file_path)
     return file_list
+
+
+java_common_tokens = ['public', 'private', 'protected', 'class', 'interface', 'abstract', 'implement', 'extends', 'new',
+                      'import', 'package', 'byte', 'char', 'boolean', 'short', 'int', 'float', 'long', 'double', 'void',
+                      'null', 'true', 'false', 'if', 'else', 'while', 'for', 'switch', 'case', 'default', 'do', 'break',
+                      'continue', 'return', 'instanceof', 'static', 'final', 'super', 'this', 'native', 'strictfp',
+                      'synchronized', 'transient', 'volatile', 'catch', 'try', 'finally', 'throw', 'throws', 'enum',
+                      'assert', 'const', 'goto',
+                      ]
+
+
+def preprocess_code_line(code, remove_java_common_tokens=False):
+    """
+    对代码进行预处理 OK
+    :param code:
+    :param remove_java_common_tokens:
+    :return:
+    """
+    code = code.replace('(', ' ') \
+        .replace(')', ' ') \
+        .replace('{', ' ') \
+        .replace('}', ' ') \
+        .replace('[', ' ') \
+        .replace(']', ' ') \
+        .replace('.', ' ') \
+        .replace(':', ' ') \
+        .replace(';', ' ') \
+        .replace(',', ' ') \
+        .replace(' _ ', '_')
+    code = re.sub('``.*``', '<STR>', code)
+    code = re.sub("'.*'", '<STR>', code)
+    code = re.sub('".*"', '<STR>', code)
+    code = re.sub('\d+', '<NUM>', code)
+
+    processed_code = code
+    if remove_java_common_tokens:
+        new_code = ''
+        for tok in code.split():
+            if tok not in java_common_tokens:
+                new_code = new_code + tok + ' '
+        processed_code = new_code.strip()
+    return processed_code.strip()
 
 
 if __name__ == '__main__':

@@ -1,12 +1,109 @@
 # -*- coding:utf-8 -*-
 
-# n-gram
-from sklearn.feature_extraction.text import CountVectorizer
-import numpy as np
+import pandas as pd
 
+from src.models.base_model import BaseModel
 from src.utils.eval import evaluation
 from src.utils.helper import *
 import math
+
+
+class Entropy(BaseModel):
+    model_name = 'Entropy'
+
+    def __init__(self, train_release, test_release):
+        super().__init__(train_release, test_release)
+        self.model_file_path = f'{self.cp_result_path}model_files/'
+        self.entropy_result_file = f'{self.cp_result_path}entropy_result/{self.project_name}/{self.test_release}-result.csv'
+
+        self.rank_strategy = self.rank_strategy_4()
+
+    def get_buggy_density(self):
+        buggy_density = dict()
+        file_buggy_lines_dict = dict()
+        # 读取预测为buggy的每个文件中包含的buggy代码行数
+        with open(self.entropy_result_file, 'r') as data:
+            for line in data.readlines():
+                filename = line.strip().split(':')[0]
+                if not filename in file_buggy_lines_dict:
+                    file_buggy_lines_dict[filename] = 1
+                else:
+                    file_buggy_lines_dict[filename] += 1
+        # 计算缺陷密度 buggy lines/total lines
+        for index in range(len(self.test_text_lines)):
+            filename = self.test_filename[index]
+            # 预测为无缺陷的文件 缺陷密度为0
+            if filename not in file_buggy_lines_dict:
+                buggy_density[filename] = 0
+            else:
+                buggy_density[filename] = file_buggy_lines_dict[filename] / len(self.test_text_lines[index])
+        self.test_pred_density = buggy_density
+
+    def analyze_file_level_result(self):
+        self.get_buggy_density()
+        print('No file level prediction process ！！！')
+        pass
+
+    def line_level_prediction(self):
+        predicted_lines, predicted_score, predicted_density, total_lines = [], [], [], 0
+        with open(self.entropy_result_file, 'r') as data:
+            for line in data.readlines():
+                temp = line.strip().split(',')
+                filename = temp[0].split(':')[0]
+                if filename in self.test_pred_density:
+                    predicted_lines.append(temp[0])
+                    predicted_score.append(temp[1])  # average entropy
+                    predicted_density.append(self.test_pred_density[filename])
+        self.predicted_buggy_lines = predicted_lines
+        self.predicted_buggy_score = predicted_score
+        self.predicted_density = predicted_density
+        self.total_lines_in_defective_files = total_lines
+
+        # Line level result
+        data = {'predicted_buggy_lines': self.predicted_buggy_lines,
+                'predicted_buggy_score': self.predicted_buggy_score,
+                'predicted_density': self.predicted_density}
+        data = pd.DataFrame(data, columns=['predicted_buggy_lines', 'predicted_buggy_score', 'predicted_density'])
+        data.to_csv(self.line_level_result_file, index=False)
+
+    def analyze_line_level_result(self):
+        def load_result_data():
+            predicted_lines, predicted_score, predicted_density = [], [], []
+            with open(self.line_level_result_file, 'r') as f:
+                for l in f.readlines()[1:]:
+                    predicted_lines.append(l.strip().split(',')[0])
+                    predicted_score.append(float(l.strip().split(',')[1]))
+                    predicted_density.append(float(l.strip().split(',')[2]))
+            return predicted_lines, predicted_score, predicted_density
+
+        self.predicted_buggy_lines, self.predicted_buggy_score, self.predicted_density = load_result_data()
+
+        ######################### classification performance indicators #########################
+        tp = len(self.actual_buggy_lines.intersection(self.predicted_buggy_lines))
+        fp = len(self.predicted_buggy_lines) - tp
+        # fn = len(self.actual_buggy_lines) - tp
+        fn = self.num_actual_buggy_lines - tp
+        # tn = self.total_lines - tp - fp - fn # 22 11366 191 183785
+        tn = self.total_lines_in_defective_files - tp - fp - fn  # 22 11366 6 17000
+
+        precision = .0 if tp + fp == .0 else tp / (tp + fp)
+        recall = .0 if tp + fn == .0 else tp / (tp + fn)
+        far = .0 if fp + tn == 0 else fp / (fp + tn)
+        ce = .0 if fn + tn == .0 else fn / (fn + tn)
+
+        d2h = math.sqrt(math.pow(1 - recall, 2) + math.pow(0 - far, 2)) / math.sqrt(2)
+        mcc = .0 if tp + fp == .0 or tp + fn == .0 or tn + fp == .0 or tn + fn == .0 else \
+            (tp * tn - fp * fn) / math.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
+
+        ######################### ranking performance indicators #########################
+        ifa, recall_20 = self.rank_strategy  # Strategy 1
+
+        append_title = True if not os.path.exists(self.line_level_evaluation_file) else False
+        title = 'release,precision,recall,far,ce,d2h,mcc,ifa,recall_20\n'
+        with open(self.line_level_evaluation_file, 'a') as file:
+            file.write(title) if append_title else None
+            file.write(f'{self.test_release},{precision},{recall},{far},{ce},{d2h},{mcc},{ifa},{recall_20}\n')
+        return
 
 
 def get_tokenize(release, train_text, n):

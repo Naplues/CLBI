@@ -2,11 +2,11 @@
 
 import src.models.natural as natural
 from src.exps.cross_release import *
-from src.models.access import AccessModel, NT_Model, NFC_Model
+from src.models.glance import Glance
 from src.models.explain import *
 
 # 忽略警告信息
-from src.models.static_analysis_tools import detect_bugs_by_checkstyle_from_each_single_file, PMDModel, CheckStyleModel
+from src.models.tools import detect_bugs_by_checkstyle_from_each_single_file, PMDModel, CheckStyleModel
 
 warnings.filterwarnings('ignore')
 simplefilter(action='ignore', category=FutureWarning)
@@ -15,32 +15,48 @@ simplefilter(action='ignore', category=FutureWarning)
 Predict = 'Predict'
 Eval = 'Evaluate'
 
+
 # thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-thresholds = [50]
 
 
 # ################# Run CR-P experiments ###################
 def run_cross_release_predict(prediction_model, depend_model=None):
-    for threshold in thresholds:
-        for project, releases in get_project_releases_dict().items():
-            predict_cross_release(project, releases, prediction_model, depend_model, threshold)
+    for project, releases in get_project_releases_dict().items():
+        print(f'========== Cross-release prediction for {project} ========================================'[:50])
+        # 某个预测模型的跨版本实验结果存储路径. 如, D:/CLDP_data/Result/CP/AccessModel_50/
+
+        for i in range(len(releases) - 1):
+            # 1. Loading data. train data index = i, test data index = i + 1
+            train_release, test_release = releases[i], releases[i + 1]
+
+            model = prediction_model(train_release, test_release)
+
+            model.file_level_prediction()
+            model.analyze_file_level_result()
+
+            model.line_level_prediction()
+            model.analyze_line_level_result()
 
 
 # ################# Run CR-E experiments ###################
-def run_cross_release_eval(prediction_model, depend_model=AccessModel, depend=False):
-    for threshold in thresholds:
-        for project, releases in get_project_releases_dict().items():
-            # depend = True 时, Access 结果 依赖baseline方法, = False 时, 为自身的预测结果
-            eval_cross_release(project, releases, prediction_model, depend_model, threshold, depend)
+def run_cross_release_eval(prediction_model, depend=False):
+    for project, releases in get_project_releases_dict().items():
+        print(f'========== Cross-release prediction for {project} ========================================'[:50])
+        # 某个预测模型的跨版本实验结果存储路径. 如, D:/CLDP_data/Result/CP/AccessModel_50/
+        print("Training set\t ===> \tTest set.")
+        for i in range(len(releases) - 1):
+            # 1. Loading data. train data index = i, test data index = i + 1
+            train_release, test_release = releases[i], releases[i + 1]
 
-        cp_result_path = f'{root_path}Result/CP/{getattr(prediction_model, "__name__")}_{threshold}/'
-        combine_cross_results(cp_result_path)
-        # eval_ifa(cp_result_path)
-        combine_cross_results_for_each_project(cp_result_path)
+            model = prediction_model(train_release, test_release)
+            model.analyze_file_level_result()
+            model.analyze_line_level_result()
 
 
 if __name__ == '__main__':
-    run_cross_release_predict(LineDP_Model)
+    # run_cross_release_predict(LineDP)
+    run_cross_release_predict(natural.Entropy)
+
     # ============================= Access ====================================
     # run_cross_release_predict(AccessModel)
     # run_cross_release_eval(AccessModel)

@@ -3,10 +3,10 @@ import math
 import warnings
 import numpy as np
 
-from src.models.access import *
+from src.models.glance import *
 from src.models.explain import LineDP
 from src.models.natural import LM_2_Model
-from src.models.static_analysis_tools import *
+from src.models.tools import *
 from src.utils.helper import *
 from sklearn import metrics
 from src.utils.eval import evaluation
@@ -26,7 +26,7 @@ warnings.filterwarnings('ignore')
 simplefilter(action='ignore', category=FutureWarning)
 
 
-def predict_cross_release(proj_name, releases, studied_model, depend_model=None, th=50):
+def predict_cross_release(proj_name, releases, studied_model, depend_model=None):
     """
     跨版本实验: 训练 Vi 预测 Vi+1
     Predict the results under cross release experiments: Training release i to predict test release i + 1
@@ -34,21 +34,17 @@ def predict_cross_release(proj_name, releases, studied_model, depend_model=None,
     :param releases: Studied releases (i.e., [Ambari-2.1.0, Ambari-2.2.0, Ambari-2.4.0])
     :param studied_model: The prediction model (i.e, AccessModel)
     :param depend_model: The depend model (i.e., LineDPModel)
-    :param th:
     :return:
     """
     print(f'========== Cross-release prediction for {proj_name} =============================================='[:60])
-    model_name = getattr(studied_model, "__name__")  # A返回调用方法的属性值，如模型函数的名字属性 AccessModel
     # 某个预测模型的跨版本实验结果存储路径. 如, D:/CLDP_data/Result/CP/AccessModel_50/
-    cp_result_path = f'{root_path}Result/CP/{model_name}_{th}/'
-    make_path(cp_result_path)
 
     print("Training set\t ===> \tTest set.")
     for i in range(len(releases) - 1):
         # 1. Loading data. train data index = i, test data index = i + 1
         train_release, test_release = releases[i], releases[i + 1]
 
-        model = LineDP(train_release, test_release)
+        model = studied_model(train_release, test_release)
 
         model.file_level_prediction()
         model.analyze_file_level_result()
