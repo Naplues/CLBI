@@ -1,520 +1,68 @@
 # -*- coding:utf-8 -*-
-
-import pandas as pd
-
-from src.models.base_model import BaseModel
-from src.utils.eval import evaluation
+from src.utils.config import USE_CACHE
 from src.utils.helper import *
-import math
+from src.models.base_model import BaseModel
 
 
-class Entropy(BaseModel):
-    model_name = 'Entropy'
+class NGram(BaseModel):
+    model_name = 'NGram'
 
     def __init__(self, train_release, test_release):
         super().__init__(train_release, test_release)
-        self.model_file_path = f'{self.cp_result_path}model_files/'
-        self.entropy_result_file = f'{self.cp_result_path}entropy_result/{self.project_name}/{self.test_release}-result.csv'
+        self.model_file_path = f'{self.result_path}model_files/'
+        self.entropy_result_file = f'{self.result_path}entropy_result/{self.project_name}/{self.test_release}-result.csv'
 
-        self.rank_strategy = self.rank_strategy_4()
+        self.rank_strategy = 3
 
-    def get_buggy_density(self):
-        buggy_density = dict()
-        file_buggy_lines_dict = dict()
-        # 读取预测为buggy的每个文件中包含的buggy代码行数
-        with open(self.entropy_result_file, 'r') as data:
-            for line in data.readlines():
-                filename = line.strip().split(':')[0]
-                if not filename in file_buggy_lines_dict:
-                    file_buggy_lines_dict[filename] = 1
-                else:
-                    file_buggy_lines_dict[filename] += 1
-        # 计算缺陷密度 buggy lines/total lines
-        for index in range(len(self.test_text_lines)):
-            filename = self.test_filename[index]
-            # 预测为无缺陷的文件 缺陷密度为0
-            if filename not in file_buggy_lines_dict:
-                buggy_density[filename] = 0
-            else:
-                buggy_density[filename] = file_buggy_lines_dict[filename] / len(self.test_text_lines[index])
-        self.test_pred_density = buggy_density
+        # remove_path(self.file_level_result_path)
 
-    def analyze_file_level_result(self):
-        self.get_buggy_density()
-        print('No file level prediction process ！！！')
-        pass
+    def file_level_prediction(self):
+        # super(Entropy, self).file_level_prediction()
+        if USE_CACHE and os.path.exists(self.file_level_result_file):
+            return
+
+        self.test_pred_labels = np.ones((len(self.test_labels),), dtype=int)
+        self.test_pred_scores = np.ones((len(self.test_labels),), dtype=int)
+
+        # Save file level result
+        self.save_file_level_result()
 
     def line_level_prediction(self):
-        predicted_lines, predicted_score, predicted_density, total_lines = [], [], [], 0
+
+        super(NGram, self).line_level_prediction()
+        if USE_CACHE and os.path.exists(self.line_level_result_file):
+            return
+
+        predicted_lines, predicted_score, predicted_density = [], [], []
+        predicted_buggy_files = [self.test_filename[index] for index in range(len(self.test_filename)) if
+                                 self.test_pred_labels[index] == 1]
+
         with open(self.entropy_result_file, 'r') as data:
             for line in data.readlines():
                 temp = line.strip().split(',')
                 filename = temp[0].split(':')[0]
-                if filename in self.test_pred_density:
+                if filename in predicted_buggy_files:
                     predicted_lines.append(temp[0])
                     predicted_score.append(temp[1])  # average entropy
-                    predicted_density.append(self.test_pred_density[filename])
+                    # predicted_density.append(self.test_pred_density[filename])
+                    predicted_density.append(temp[1])
+
         self.predicted_buggy_lines = predicted_lines
         self.predicted_buggy_score = predicted_score
         self.predicted_density = predicted_density
-        self.total_lines_in_defective_files = total_lines
+        self.num_predict_buggy_lines = len(self.predicted_buggy_lines)  # Require in the super class.
 
-        # Line level result
-        data = {'predicted_buggy_lines': self.predicted_buggy_lines,
-                'predicted_buggy_score': self.predicted_buggy_score,
-                'predicted_density': self.predicted_density}
-        data = pd.DataFrame(data, columns=['predicted_buggy_lines', 'predicted_buggy_score', 'predicted_density'])
-        data.to_csv(self.line_level_result_file, index=False)
+        # Save line level result and buggy density
+        self.save_line_level_result()
+        self.save_buggy_density_file()
 
-    def analyze_line_level_result(self):
-        def load_result_data():
-            predicted_lines, predicted_score, predicted_density = [], [], []
-            with open(self.line_level_result_file, 'r') as f:
-                for l in f.readlines()[1:]:
-                    predicted_lines.append(l.strip().split(',')[0])
-                    predicted_score.append(float(l.strip().split(',')[1]))
-                    predicted_density.append(float(l.strip().split(',')[2]))
-            return predicted_lines, predicted_score, predicted_density
 
-        self.predicted_buggy_lines, self.predicted_buggy_score, self.predicted_density = load_result_data()
+class NGram_C(NGram):
+    model_name = 'NGram-C'
 
-        ######################### classification performance indicators #########################
-        tp = len(self.actual_buggy_lines.intersection(self.predicted_buggy_lines))
-        fp = len(self.predicted_buggy_lines) - tp
-        # fn = len(self.actual_buggy_lines) - tp
-        fn = self.num_actual_buggy_lines - tp
-        # tn = self.total_lines - tp - fp - fn # 22 11366 191 183785
-        tn = self.total_lines_in_defective_files - tp - fp - fn  # 22 11366 6 17000
-
-        precision = .0 if tp + fp == .0 else tp / (tp + fp)
-        recall = .0 if tp + fn == .0 else tp / (tp + fn)
-        far = .0 if fp + tn == 0 else fp / (fp + tn)
-        ce = .0 if fn + tn == .0 else fn / (fn + tn)
-
-        d2h = math.sqrt(math.pow(1 - recall, 2) + math.pow(0 - far, 2)) / math.sqrt(2)
-        mcc = .0 if tp + fp == .0 or tp + fn == .0 or tn + fp == .0 or tn + fn == .0 else \
-            (tp * tn - fp * fn) / math.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
-
-        ######################### ranking performance indicators #########################
-        ifa, recall_20 = self.rank_strategy  # Strategy 1
-
-        append_title = True if not os.path.exists(self.line_level_evaluation_file) else False
-        title = 'release,precision,recall,far,ce,d2h,mcc,ifa,recall_20\n'
-        with open(self.line_level_evaluation_file, 'a') as file:
-            file.write(title) if append_title else None
-            file.write(f'{self.test_release},{precision},{recall},{far},{ce},{d2h},{mcc},{ifa},{recall_20}\n')
-        return
-
-
-def get_tokenize(release, train_text, n):
-    """
-    :param release:
-    :param train_text:
-    :param n:
-    :return:
-    """
-    for i in range(1, n + 1):
-        file_path = f'{result_path}NBF/{release}/{i}-gram.txt'
-        if os.path.exists(file_path):
-            continue
-        ngram_vector = CountVectorizer(lowercase=False, stop_words=None, ngram_range=(i, i))
-        corpus = [' '.join(train_text)]
-        train_vtr = ngram_vector.fit_transform(corpus)
-        text = '\n'.join([f'{token}:{train_vtr[0, index]}' for token, index in ngram_vector.vocabulary_.items()])
-
-        save_result(file_path, text)
-        print(f'{file_path} word output finish!')
-
-
-def get_vocabulary(release):
-    return set([line.split(':')[0] for line in read_data_from_file(f'{result_path}NBF/{release}/1-gram.txt')])
-
-
-def count_sequence(target_release, n):
-    """
-    Count the frequency of each sequence
-    :param target_release:
-    :param n:
-    :return:
-    """
-    seq_dict = {}
-    lines = read_data_from_file(f'{result_path}NBF/{target_release}/{n}-gram.txt')
-    for line in lines:
-        split = line.split(':')
-        seq, count = split[0], int(split[1])
-        seq_dict[seq] = count
-    return seq_dict
-
-
-def build_global_n_gram(target_release, n):
-    for i in range(1, n + 1):
-        if i == 1:
-            # 序列字典
-            seq_n_dict = count_sequence(target_release, i)
-            # 字典大小
-            size_of_v = len(seq_n_dict)
-            # 所有序列出现的次数总和
-            size_of_all_seq = sum([count for token, count in seq_n_dict.items()])
-            # 未出现的词的概率
-            n_gram_dict = {'-': 1 / (size_of_all_seq + size_of_v)}
-            # 计算每个序列对应的概率
-            for token in seq_n_dict.keys():
-                n_gram_dict[token] = (seq_n_dict[token] + 1) / (size_of_all_seq + size_of_v)
-            # 存储概率字典
-            dump_pk_result(f'{result_path}NBF/{target_release}/n-gram.pk', n_gram_dict)
-        else:
-            n_gram_prefix_dict = {}
-            n_gram_suffix_dict = {}
-            # sequence with length of n, sequence with length of n-1
-            seq_n_dict, seq_n_1_dict = count_sequence(target_release, i), count_sequence(target_release, i - 1)
-
-            for seq, count_seq in seq_n_dict.items():
-                # seq: 'java util HashMap' count_seq:37
-                split = seq.split(' ')
-                # 前缀序列和后缀序列
-                seq_prefix, seq_suffix = ' '.join(split[:-1]), ' '.join(split[1:])
-                # 前缀对应的尾部单词 后缀对应的首部单词
-                token_prefix, token_suffix = split[-1], split[0]
-                # 前缀序列的频率 后缀序列的频率 NOTE 前缀或者后缀一定存在
-                count_prefix, count_suffix = seq_n_1_dict[seq_prefix], seq_n_1_dict[seq_suffix]
-                # 词库的大小
-                size_of_v = len(get_vocabulary(target_release))
-                # 前缀常量 后缀常量
-                prefix_c, suffix_c = 1 / (count_prefix + size_of_v), 1 / (count_suffix + size_of_v)
-                # 获取 序列前缀的字典 序列后缀的字典
-                d_prefix = n_gram_prefix_dict[seq_prefix] if seq_prefix in n_gram_prefix_dict else {'-': prefix_c}
-                d_suffix = n_gram_suffix_dict[seq_suffix] if seq_suffix in n_gram_suffix_dict else {'-': suffix_c}
-
-                d_prefix[token_prefix] = (count_seq + 1) / (count_prefix + size_of_v)
-                d_suffix[token_suffix] = (count_seq + 1) / (count_suffix + size_of_v)
-
-                n_gram_prefix_dict[seq_prefix] = d_prefix
-                n_gram_suffix_dict[seq_suffix] = d_suffix
-
-            dump_pk_result(f'{result_path}NBF/{target_release}/{i}-gram_prefix.pk', n_gram_prefix_dict)
-            dump_pk_result(f'{result_path}NBF/{target_release}/{i}-gram_suffix.pk', n_gram_suffix_dict)
-    print(f'==================== {n}-gram dict of {target_release} output finish ========================'[:80])
-
-
-def build_global_language_model(target_release, order):
-    print(f'Building global {order}-gram model for {target_release}')
-    # read line level text from the target release
-    train_text, train_text_lines, train_label, train_filename = read_file_level_dataset(target_release)
-    # tokenize a source file
-    get_tokenize(target_release, train_text, order)
-    build_global_n_gram(target_release, order)
-    print(f'The {order}-gram model has been built finish!')
-
-
-def predict_global_entropy(test_file, analysis, ngram_dict, prefix_dict, suffix_dict, order):
-    entropy_of_each_file = []
-    # process each file
-    for line_index in range(len(test_file)):
-        line = test_file[line_index]
-        # process each line
-        words_in_line = analysis(line.strip())
-        # the number of words in the line
-        num_of_words = len(words_in_line)
-        # entropy = -1/n * sum( p(ti,h) * log(p(ti,h)) )
-        entropy = -1
-        if num_of_words > 0:
-            ent_of_token = 0
-            for i in range(num_of_words):
-                if order == 1:
-                    # n-gram n==1
-                    prob = ngram_dict.get(words_in_line[i], ngram_dict['-'])
-                else:
-                    # n-gram n>=2
-                    # prolog
-                    start = 0 if i - (order - 1) < 0 else i - (order - 1)
-                    # 前缀 当前词 当前词的概率
-                    prefix, current, prob_prefix = ' '.join(words_in_line[start:i]), words_in_line[i], 0
-                    if len(prefix) == 0:
-                        prob_prefix = ngram_dict.get(current, ngram_dict['-'])
-                    else:
-                        if prefix not in prefix_dict:
-                            prob_prefix = prefix_dict['-']
-                        else:
-                            prob_prefix = prefix_dict[prefix].get(current, prefix_dict[prefix]['-'])
-
-                    # epilog
-                    end = num_of_words if i + (order - 1) > num_of_words else i + (order - 1)
-                    suffix, current, prob_suffix = ' '.join(words_in_line[i:end]), words_in_line[i], 0
-                    if len(suffix) == 0:
-                        prob_suffix = ngram_dict.get(current, ngram_dict['-'])
-                    else:
-                        if suffix not in suffix_dict:
-                            prob_suffix = suffix_dict['-']
-                        else:
-                            prob_suffix = suffix_dict[suffix].get(current, suffix_dict[suffix]['-'])
-
-                    prob = (prob_prefix + prob_suffix) / 2
-
-                # ent_of_token += prob * math.log(prob)
-                ent_of_token += math.log(prob)
-
-            entropy = -(ent_of_token / num_of_words)
-            # print(entropy)
-        entropy_of_each_file.append(entropy)
-    return np.array(entropy_of_each_file)
-
-
-# OK 进行代码行级别的排序
-def Ngram_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, n_gram_order):
-    """
-    Ranking line-level defect-prone lines using TMI-LR model
-    :param proj:
-    :param vector:
-    :param classifier:
-    :param test_text_lines:
-    :param test_filename:
-    :param test_predictions:
-    :param out_file:
-    :param n_gram_order
-    :return:
-    """
-    # 正确bug行号字典 预测bug行号字典 二分类切分点字典 工作量切分点字典
-    oracle_line_dict = read_line_level_dataset(proj)
-    ranked_list_dict = {}
-    worst_list_dict = {}
-    defect_cf_dict = {}
-    effort_cf_dict = {}
-
-    # 预测为有缺陷的文件的索引
-    defect_prone_file_indices = np.array([index[0] for index in np.argwhere(test_predictions == 1)])
-
-    # Language Model 变量
-    analysis = CountVectorizer(lowercase=False, stop_words=None).build_analyzer()
-    ngram_dict = load_pk_result(f'{result_path}NBF/{proj}/n-gram.pk')
-    prefix_dict, suffix_dict = {}, {}
-    if n_gram_order > 1:
-        prefix_dict = load_pk_result(f'{result_path}NBF/{proj}/{n_gram_order}-gram_prefix.pk')
-        suffix_dict = load_pk_result(f'{result_path}NBF/{proj}/{n_gram_order}-gram_suffix.pk')
-
-    # 对预测为有bug的文件逐个进行解释结果来进行代码行级别的预测
-    for i in range(len(defect_prone_file_indices)):
-        target_file_index = defect_prone_file_indices[i]
-        # 目标文件名
-        target_file_name = test_filename[target_file_index]
-        # 有的文件被预测为有bug,但实际上没有bug,因此不会出现在 oracle 中,这类文件要剔除
-        if target_file_name not in oracle_line_dict:
-            oracle_line_dict[target_file_name] = []
-        # 目标文件的代码行列表
-        target_file_lines = test_text_lines[target_file_index]
-
-        # ####################################### 核心部分 #################################################
-        # 统计 每一行中出现 risk tokens 的个数, 初始为 [0 0 0 0 0 0 ... 0 0], 注意行号从0开始计数
-
-        hit_count = predict_global_entropy(target_file_lines, analysis, ngram_dict, prefix_dict, suffix_dict,
-                                           n_gram_order)
-
-        # ####################################### 核心部分 #################################################
-
-        # 根据命中次数对所有代码行进行降序排序, 按照排序后数值从大到小的顺序显示每个元素在原列表中的索引(i.e., 行号-1)
-        # line + 1,因为原列表中代表行号的索引是从0开始计数而不是从1开始
-        sorted_index = np.argsort(-hit_count)
-        sorted_line_number = [line + 1 for line in sorted_index.tolist()]
-        # 原始未经过调整的列表
-        ranked_list_dict[target_file_name] = sorted_line_number
-
-        # ####################################### 将序列调整为理论上的最差性能  实际使用时可以去掉 ################
-        # 需要调整为最差排序的列表,当分数相同时
-        worst_line_number = list(sorted_line_number)
-        sorted_list = hit_count[sorted_index]
-        worse_list, current_score, start_index, oracle_lines = [], -1, -1, oracle_line_dict[target_file_name]
-        for ii in range(len(sorted_list)):
-            if sorted_list[ii] != current_score:
-                current_score = sorted_list[ii]
-                start_index = ii
-            elif worst_line_number[ii] not in oracle_lines:
-                temp = worst_line_number[ii]  # 取出这个无bug的行号
-                for t in range(ii, start_index, -1):
-                    worst_line_number[t] = worst_line_number[t - 1]
-                worst_line_number[start_index] = temp
-        worst_list_dict[target_file_name] = worst_line_number
-        # ####################################### 将序列调整为理论上的最差性能  实际使用时可以去掉 ################
-
-        # ###################################### 切分点设置 ################################################
-        # 20% effort (i.e, LOC)
-        effort_cf_dict[target_file_name] = int(.2 * len(target_file_lines))
-        # 设置分类切分点: 所有包含risk tokens (i.e., hit_count[i] > 0) 的代码行被预测为有 bug
-        defect_cf_dict[target_file_name] = int(.5 * len(target_file_lines))
-        # print('%d/%d files predicted finish!' % (i, len(defect_prone_file_indices)))
-
-    dump_pk_result(out_file, [oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict])
-    return evaluation(proj, oracle_line_dict, ranked_list_dict, worst_list_dict, defect_cf_dict, effort_cf_dict)
-
-
-# OK 进行代码行级别的排序
-def LM_1_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold):
-    return Ngram_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, 1)
-
-
-# OK 进行代码行级别的排序
-def LM_2_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold):
-    return Ngram_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, 2)
-
-
-# OK 进行代码行级别的排序
-def LM_3_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold):
-    return Ngram_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, 3)
-
-
-# OK 进行代码行级别的排序
-def LM_4_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, threshold):
-    return Ngram_Model(proj, vector, classifier, test_text_lines, test_filename, test_predictions, out_file, 4)
-
-
-def run_global_lm():
-    n_gram_order = 2
-    for project, releases in get_project_releases_dict().items():
-        print(releases)
-        print('Processing project ', project)
-        for i in range(1, len(releases)):
-            target_release = releases[i]
-            build_global_language_model(target_release, n_gram_order)
-
-
-# ========================================== cache ===========================================
-def get_cache_tokenize(release, train_text, train_file_name, n):
-    token_dict = {}
-    for i in range(1, n + 1):
-
-        for file_index in range(len(train_file_name)):
-            target_file_name = train_file_name[file_index]
-            target_file_text = train_text[file_index]
-
-            ngram_vector = CountVectorizer(lowercase=False, stop_words=None, ngram_range=(i, i))
-            corpus = target_file_text
-            train_vtr = ngram_vector.fit_transform(corpus)
-            text = '\n'.join([f'{token}:{train_vtr[0, index]}' for token, index in ngram_vector.vocabulary_.items()])
-
-            # save_result(file_path, text)
-            # print(f'{file_path} word output finish!')
-
-
-def predict_cache_entropy(test_file, analysis, ngram_dict, prefix_dict, suffix_dict, order):
-    entropy_of_each_file = []
-    # process each file
-    for line_index in range(len(test_file)):
-        line = test_file[line_index]
-        # process each line
-        words_in_line = analysis(line.strip())
-        # the number of words in the line
-        num_of_words = len(words_in_line)
-        # entropy = -1/n * sum( p(ti,h) * log(p(ti,h)) )
-        entropy = -1
-        if num_of_words > 0:
-            ent_of_token = 0
-            for i in range(num_of_words):
-                if order == 1:
-                    # n-gram n==1
-                    prob = ngram_dict.get(words_in_line[i], ngram_dict['-'])
-                else:
-                    # n-gram n>=2
-                    # prolog
-                    start = 0 if i - (order - 1) < 0 else i - (order - 1)
-                    # 前缀 当前词 当前词的概率
-                    prefix, current, prob_prefix = ' '.join(words_in_line[start:i]), words_in_line[i], 0
-                    if len(prefix) == 0:
-                        prob_prefix = ngram_dict.get(current, ngram_dict['-'])
-                    else:
-                        if prefix not in prefix_dict:
-                            prob_prefix = prefix_dict['-']
-                        else:
-                            prob_prefix = prefix_dict[prefix].get(current, prefix_dict[prefix]['-'])
-
-                    # epilog
-                    end = num_of_words if i + (order - 1) > num_of_words else i + (order - 1)
-                    suffix, current, prob_suffix = ' '.join(words_in_line[i:end]), words_in_line[i], 0
-                    if len(suffix) == 0:
-                        prob_suffix = ngram_dict.get(current, ngram_dict['-'])
-                    else:
-                        if suffix not in suffix_dict:
-                            prob_suffix = suffix_dict['-']
-                        else:
-                            prob_suffix = suffix_dict[suffix].get(current, suffix_dict[suffix]['-'])
-
-                    prob = (prob_prefix + prob_suffix) / 2
-
-                # ent_of_token += prob * math.log(prob)
-                ent_of_token += math.log(prob)
-
-            entropy = -(ent_of_token / num_of_words)
-            # print(entropy)
-        entropy_of_each_file.append(entropy)
-    return np.array(entropy_of_each_file)
-
-
-def build_cache_n_gram(target_release, n):
-    for i in range(1, n + 1):
-        if i == 1:
-            # 序列字典
-            seq_n_dict = count_sequence(target_release, i)
-            # 字典大小
-            size_of_v = len(seq_n_dict)
-            # 所有序列出现的次数总和
-            size_of_all_seq = sum([count for token, count in seq_n_dict.items()])
-            # 未出现的词的概率
-            n_gram_dict = {'-': 1 / (size_of_all_seq + size_of_v)}
-            # 计算每个序列对应的概率
-            for token in seq_n_dict.keys():
-                n_gram_dict[token] = (seq_n_dict[token] + 1) / (size_of_all_seq + size_of_v)
-            # 存储概率字典
-            dump_pk_result(f'{result_path}NBF/{target_release}/n-gram.pk', n_gram_dict)
-        else:
-            n_gram_prefix_dict = {}
-            n_gram_suffix_dict = {}
-            # sequence with length of n, sequence with length of n-1
-            seq_n_dict, seq_n_1_dict = count_sequence(target_release, i), count_sequence(target_release, i - 1)
-
-            for seq, count_seq in seq_n_dict.items():
-                # seq: 'java util HashMap' count_seq:37
-                split = seq.split(' ')
-                # 前缀序列和后缀序列
-                seq_prefix, seq_suffix = ' '.join(split[:-1]), ' '.join(split[1:])
-                # 前缀对应的尾部单词 后缀对应的首部单词
-                token_prefix, token_suffix = split[-1], split[0]
-                # 前缀序列的频率 后缀序列的频率 NOTE 前缀或者后缀一定存在
-                count_prefix, count_suffix = seq_n_1_dict[seq_prefix], seq_n_1_dict[seq_suffix]
-                # 词库的大小
-                size_of_v = len(get_vocabulary(target_release))
-                # 前缀常量 后缀常量
-                prefix_c, suffix_c = 1 / (count_prefix + size_of_v), 1 / (count_suffix + size_of_v)
-                # 获取 序列前缀的字典 序列后缀的字典
-                d_prefix = n_gram_prefix_dict[seq_prefix] if seq_prefix in n_gram_prefix_dict else {'-': prefix_c}
-                d_suffix = n_gram_suffix_dict[seq_suffix] if seq_suffix in n_gram_suffix_dict else {'-': suffix_c}
-
-                d_prefix[token_prefix] = (count_seq + 1) / (count_prefix + size_of_v)
-                d_suffix[token_suffix] = (count_seq + 1) / (count_suffix + size_of_v)
-
-                n_gram_prefix_dict[seq_prefix] = d_prefix
-                n_gram_suffix_dict[seq_suffix] = d_suffix
-
-            dump_pk_result(f'{result_path}NBF/{target_release}/{i}-gram_prefix.pk', n_gram_prefix_dict)
-            dump_pk_result(f'{result_path}NBF/{target_release}/{i}-gram_suffix.pk', n_gram_suffix_dict)
-    print(f'==================== {n}-gram dict of {target_release} output finish ========================'[:80])
-
-
-def build_cache_language_model(target_release, order):
-    print(f'Building cache {order}-gram model for {target_release}')
-    # read line level text from the target release
-    train_text, train_text_lines, train_label, train_filename = read_file_level_dataset(target_release)
-    # tokenize a source file
-    get_tokenize(target_release, train_text, order)
-    build_cache_n_gram(target_release, order)
-    print(f'The {order}-gram model has been built finish!')
-
-
-def run_cache_lm():
-    n_gram_order = 2
-    for project, releases in get_project_releases_dict().items():
-        print(releases)
-        print('Processing project ', project)
-        for i in range(1, len(releases)):
-            target_release = releases[i]
-            build_cache_language_model(target_release, n_gram_order)
+    def __init__(self, train_release, test_release):
+        super().__init__(train_release, test_release)
 
 
 if __name__ == '__main__':
-    run_global_lm()
+    pass

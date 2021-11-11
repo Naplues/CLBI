@@ -1,13 +1,7 @@
 # -*- coding:utf-8 -*-
-import math
-
-import pandas as pd
-
-from sklearn import metrics
-
-from src.models.base_model import BaseModel
+from src.utils.config import USE_CACHE
 from src.utils.helper import *
-from src.utils.eval import evaluation
+from src.models.base_model import BaseModel
 
 
 def call_number(statement):
@@ -25,17 +19,21 @@ class Glance(BaseModel):
     def __init__(self, train_release, test_release):
         super().__init__(train_release, test_release)
 
-        self.vector = CountVectorizer(lowercase=False, min_df=2)
         self.tokenizer = self.vector.build_tokenizer()
+        self.threshold_classification = 0.5
+        self.control_weight = 2
+        self.effort_aware = True
         self.tags = ['todo', 'hack', 'fixme', 'xxx']
-        # classifier
+
+        self.rank_strategy = 3
 
     def file_level_prediction(self):
         """
         Effort-Aware ManualDown File-level defect prediction
         :return:
         """
-        print(f'Predicting ===> \t{self.test_release}')
+        if USE_CACHE and os.path.exists(self.file_level_result_file):
+            return
 
         num_of_files = len(self.test_text)
         test_prediction = np.zeros(num_of_files, dtype=int).tolist()  # 初始化空的list
@@ -66,19 +64,34 @@ class Glance(BaseModel):
 
         file_count = 0
         for index in sorted_index:
-            if effort_acc < effort_all * 0.5:
-                # if count <= len(loc) / 2:
-                test_prediction[index] = 1
-                effort_acc += loc[index]
-                file_count += 1
+            if self.effort_aware:
+                if effort_acc < effort_all * self.threshold_classification:
+                    test_prediction[index] = 1
+                    effort_acc += loc[index]
+                    file_count += 1
+                else:
+                    break
             else:
-                break
+                if file_count <= len(loc) * self.threshold_classification:  #
+                    test_prediction[index] = 1
+                    effort_acc += loc[index]
+                    file_count += 1
+                else:
+                    break
 
         self.test_pred_labels = test_prediction
         self.test_pred_scores = np.array(score)
 
+        # Save file level result
+        self.save_file_level_result()
+
     def line_level_prediction(self):
-        predicted_lines, predicted_score, predicted_density, total_lines = [], [], [], 0
+        super(Glance, self).line_level_prediction()
+        if USE_CACHE and os.path.exists(self.line_level_result_file):
+            return
+
+        predicted_lines, predicted_score, predicted_density = [], [], []
+
         # Indices of defective files in descending order according to the prediction scores
         defective_file_index = [i for i in np.argsort(self.test_pred_scores)[::-1] if self.test_pred_labels[i] == 1]
 
@@ -90,7 +103,7 @@ class Glance(BaseModel):
                 self.oracle_line_dict[defective_filename] = []
             # 目标文件的代码行列表
             defective_file_line_list = self.test_text_lines[defective_file_index[i]]
-            total_lines += len(defective_file_line_list)
+
             # ############################ 重点,怎么给每行赋一个缺陷值 ################################
             # 计算 每一行的权重, 初始为 [0 0 0 0 0 0 ... 0 0], 注意行号从0开始计数
             num_of_lines = len(defective_file_line_list)
@@ -103,50 +116,61 @@ class Glance(BaseModel):
                 else:
                     hit_count[line_index] = len(tokens_in_line) * call_number(defective_file_line_list[line_index]) + 1
 
-                weight = 2
-
                 if 'for' in tokens_in_line:
-                    hit_count[line_index] *= weight
+                    hit_count[line_index] *= self.control_weight
                 if 'while' in tokens_in_line:
-                    hit_count[line_index] *= weight
+                    hit_count[line_index] *= self.control_weight
                 if 'do' in tokens_in_line:
-                    hit_count[line_index] *= weight
+                    hit_count[line_index] *= self.control_weight
 
                 if 'if' in tokens_in_line:
-                    hit_count[line_index] *= weight
+                    hit_count[line_index] *= self.control_weight
                 if 'else' in tokens_in_line:
-                    hit_count[line_index] *= weight
+                    hit_count[line_index] *= self.control_weight
                 if 'switch' in tokens_in_line:
-                    hit_count[line_index] *= weight
+                    hit_count[line_index] *= self.control_weight
                 if 'case' in tokens_in_line:
-                    hit_count[line_index] *= weight
+                    hit_count[line_index] *= self.control_weight
 
                 if 'continue' in tokens_in_line:
-                    hit_count[line_index] *= weight
+                    hit_count[line_index] *= self.control_weight
                 if 'break' in tokens_in_line:
-                    hit_count[line_index] *= weight
+                    hit_count[line_index] *= self.control_weight
                 if 'return' in tokens_in_line:
-                    hit_count[line_index] *= weight
+                    hit_count[line_index] *= self.control_weight
 
                 # hit_count[line_index] = (hit_count[line_index] + 1)  # * lm_score[index]
 
             # ############################ 重点,怎么给每行赋一个缺陷值 ################################
-            # 根据命中次数对代码行进行降序排序, 按照排序后数值从大到小的顺序显示代码行在原列表中的索引, cut_off 为切分点
             # line + 1,因为下标是从0开始计数而不是从1开始
-            predicted_score.extend([hit_count[i] for i in range(num_of_lines) if hit_count[i] > 0])
-            predicted_lines.extend(
-                [f'{defective_filename}:{i + 1}' for i in range(num_of_lines) if hit_count[i] > 0])
+            # 分类为有缺陷的代码行索引
+            sorted_index = np.argsort(hit_count).tolist()[::-1][:int(len(hit_count) * 0.5)]
+            predicted_score.extend([hit_count[i] for i in sorted_index if hit_count[i] > 0])
+            predicted_lines.extend([f'{defective_filename}:{i + 1}' for i in sorted_index if hit_count[i] > 0])
             density = f'{len(np.where(hit_count > 0)) / len(hit_count)}'
-            predicted_density.extend([density for i in range(num_of_lines) if hit_count[i] > 0])
+            predicted_density.extend([density for i in sorted_index if hit_count[i] > 0])  # NOTE may be removed later
 
         self.predicted_buggy_lines = predicted_lines
         self.predicted_buggy_score = predicted_score
         self.predicted_density = predicted_density
-        self.total_lines_in_defective_files = total_lines
+        self.num_predict_buggy_lines = len(self.predicted_buggy_lines)  # Require in the super class.
 
-        # Line level result
-        data = {'predicted_buggy_lines': self.predicted_buggy_lines,
-                'predicted_buggy_score': self.predicted_buggy_score,
-                'predicted_density': self.predicted_density}
-        data = pd.DataFrame(data, columns=['predicted_buggy_lines', 'predicted_buggy_score', 'predicted_density'])
-        data.to_csv(self.line_level_result_file, index=False)
+        # Save line level result and buggy density
+        self.save_line_level_result()
+        self.save_buggy_density_file()
+
+
+class Glance_MD(Glance):
+    model_name = 'Glance-MD'
+
+    def __init__(self, train_release, test_release):
+        super().__init__(train_release, test_release)
+        self.effort_aware = False
+
+
+class Glance_EA(Glance):
+    model_name = 'Glance-EA'
+
+    def __init__(self, train_release, test_release):
+        super().__init__(train_release, test_release)
+        self.effort_aware = True

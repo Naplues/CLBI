@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+from sklearn.feature_extraction.text import CountVectorizer
 
 from src.utils.helper import *
 
@@ -85,7 +86,7 @@ def study():
 
 
 def diff_classification():
-    releases = get_project_release_list()
+    releases = project_release_list
     for release in releases:
         try:
             access_path = result_path + 'Diff_Classification/AccessModel/' + release + '.pk'
@@ -114,7 +115,7 @@ def diff_classification():
 
 
 def diff_ranking():
-    releases = get_project_release_list()
+    releases = project_release_list
     for release in releases:
         try:
             access_path = result_path + 'Diff_Ranking/AccessModel/' + release + '.pk'
