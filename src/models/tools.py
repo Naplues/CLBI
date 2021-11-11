@@ -161,37 +161,6 @@ class PMD(StaticAnalysisTool):
         cmd_pmd = f'pmd -d {self.code_repository_path} -R {",".join(self.rule_list)} -f csv > {self.origin_file}'
         os.system(cmd_pmd)
 
-    # def read_file_buggy_dict(self):
-    #     print(f'{"=" * 10} Parse bugs of {self.test_release} by PMD tool {"=" * 10}')
-    #
-    #     file_buggy_dict = dict()
-    #     lines = read_data_from_file(self.origin_file)
-    #     for line in lines[1:]:
-    #         split = line.split(',')
-    #         file_name = split[2].strip('"').replace("\\", "/").replace(self.code_repository_path, "")
-    #         line_number = split[4].strip('"')  # buggy lines
-    #         priority = int(split[3].strip('"'))  # buggy priority
-    #         value = [line_number, priority]
-    #         if file_name not in file_buggy_dict:
-    #             # 字典中没有该文件对应的键值对， 初始化该文件对应的buggy列表
-    #             file_buggy_dict[file_name] = [value]
-    #         else:
-    #             # 字典中已有该文件对应的键值对
-    #             # 取出该文件对应buggy行的信息,判断是否应该插入该buggy行的信息,
-    #             should_insert = True
-    #             for index in range(len(file_buggy_dict[file_name])):
-    #                 buggy_line = file_buggy_dict[file_name][index]
-    #                 # 发现该buggy行已经出现在字典值中,则不插入
-    #                 if value[0] == buggy_line[0]:
-    #                     should_insert = False
-    #                     # 如果新buggy的优先级高于已有相同行的优先级,则更新buggy行信息
-    #                     if value[1] > buggy_line[1]:
-    #                         file_buggy_dict[file_name][index] = value
-    #                     break
-    #             # 插入新的没有在字典值中出现的buggy行信息
-    #             file_buggy_dict[file_name].append(value) if should_insert else None
-    #     return file_buggy_dict
-
 
 # ################################################ CheckStyle ##########################################################
 class CheckStyle(StaticAnalysisTool):
