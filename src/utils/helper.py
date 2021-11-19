@@ -145,6 +145,7 @@ def save_csv_result(file_path, file_name, data):
     make_path(file_path)
     with open(f'{file_path}{file_name}', 'w', encoding='utf-8') as file:
         file.write(data)
+    print(f'Result has been saved to {file_path}{file_name} successfully!')
 
 
 def save_result(file_path, data):
@@ -212,31 +213,6 @@ def eval_ifa(path):
         file.write(text)
 
 
-def average(lines):
-    recall, far, d2h, mcc, ce, r_20, ifa_mean, ifa_median = .0, .0, .0, .0, .0, .0, .0, .0
-    release_name = ''
-    for line in lines:
-        ss = line.strip().split(',')
-        release_name = ss[1]
-        recall += float(ss[2])
-        far += float(ss[3])
-        d2h += float(ss[4])
-        mcc += float(ss[5])
-        ce += float(ss[6])
-        r_20 += float(ss[7])
-        ifa_mean += float(ss[8])
-        ifa_median += float(ss[9])
-    recall /= len(lines)
-    far /= len(lines)
-    d2h /= len(lines)
-    mcc /= len(lines)
-    ce /= len(lines)
-    r_20 /= len(lines)
-    ifa_mean /= len(lines)
-    ifa_median /= len(lines)
-    return f'{release_name},{recall},{far},{d2h},{mcc},{ce},{r_20},{ifa_mean},{ifa_median}\n'
-
-
 def make_path(path):
     """
     Make path is it does not exists
@@ -274,14 +250,8 @@ def dataset_statistics():
         bug_lines = sum([len(v) for k, v in read_line_level_dataset(proj).items()])
         line_ratio = bug_lines / loc
 
-        from sklearn.feature_extraction.text import CountVectorizer
-        # 2. 定义一个矢量器. 拟合矢量器, 将文本特征转换为数值特征
-        vector = CountVectorizer()
-        vector.fit_transform(texts)
-
-        tokens = len(vector.vocabulary_)
-        res = (proj, file_num, bug_num, file_ratio, loc, bug_lines, line_ratio, tokens)
-        print("%s, %d, %d, %f, %d, %d, %f, %d" % res)
+        res = (proj, file_num, bug_num, file_ratio, loc, bug_lines, line_ratio)
+        print("%s, %d, %d, %f, %d, %d, %f" % res)
 
 
 def output_box_data_for_metric():
@@ -469,6 +439,17 @@ def preprocess_code_line(code, remove_java_common_tokens=False):
     return processed_code.strip()
 
 
+def get_bug_number():
+    for proj, releases in get_project_releases_dict().items():
+        total_bugs = []
+        for release in releases:
+            commit_buggy_path = f'{root_path}/Dataset/Bug-Info/{release.split("-")[0]}'
+            buggy_lines_dict = read_dict_from_file(f'{commit_buggy_path}/{release}_commit_buggy_lines.csv')
+            total_bugs.append(len(buggy_lines_dict.keys()))
+
+        print(f'{min(total_bugs)}~{max(total_bugs)}')
+
+
 if __name__ == '__main__':
     # remove_test_or_non_java_file_from_dataset()
     # output_box_data_for_metric()
@@ -479,5 +460,6 @@ if __name__ == '__main__':
     # print(get_project_releases_dict())
     # read_file_level_dataset(get_project_releases_dict()['lucene'][0])
     # read_line_level_dataset(get_project_releases_dict()['lucene'][0])
-    export_source_file()
+    # export_source_file()
+    get_bug_number()
     pass

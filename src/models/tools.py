@@ -1,8 +1,6 @@
 # -*- coding:utf-8 -*-
 from xml.dom import minidom
 
-import pandas as pd
-
 from src.utils.config import USE_CACHE
 from src.utils.helper import *
 from src.models.base_model import BaseModel
@@ -12,7 +10,7 @@ from src.models.base_model import BaseModel
 class StaticAnalysisTool(BaseModel):
     model_name = 'SAT'
 
-    def __init__(self, train_release, test_release):
+    def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
 
         self.code_repository_path = f'{root_path}Repository/{self.project_name}/'  # 源代码所在仓库的路径
@@ -123,7 +121,7 @@ class StaticAnalysisTool(BaseModel):
 class PMD(StaticAnalysisTool):
     model_name = 'PMD'
 
-    def __init__(self, train_release, test_release):
+    def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
 
         if train_release == '' and test_release == '':
@@ -166,7 +164,7 @@ class PMD(StaticAnalysisTool):
 class CheckStyle(StaticAnalysisTool):
     model_name = 'CheckStyle'
 
-    def __init__(self, train_release, test_release):
+    def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
 
         if train_release == '' and test_release == '':

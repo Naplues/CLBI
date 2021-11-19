@@ -21,7 +21,7 @@ from lime.lime_text import LimeTextExplainer
 class LineDP(BaseModel):
     model_name = 'LineDP'
 
-    def __init__(self, train_release, test_release):
+    def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
 
         # File level classifier
@@ -112,7 +112,7 @@ class LineDP(BaseModel):
 class TMI_Model(BaseModel):
     model_name = 'TMI-Model'
 
-    def __init__(self, train_release, test_release):
+    def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
 
         # File level classifier
@@ -210,7 +210,7 @@ class TMI_Model(BaseModel):
 class TMI_LR(TMI_Model):
     model_name = 'TMI-LR'
 
-    def __init__(self, train_release, test_release):
+    def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
 
         # File level classifier
@@ -220,7 +220,7 @@ class TMI_LR(TMI_Model):
 class TMI_SVM(TMI_Model):
     model_name = 'TMI-SVM'
 
-    def __init__(self, train_release, test_release):
+    def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
 
         # File level classifier
@@ -230,7 +230,7 @@ class TMI_SVM(TMI_Model):
 class TMI_MNB(TMI_Model):
     model_name = 'TMI-MNB'
 
-    def __init__(self, train_release, test_release):
+    def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
 
         # File level classifier
@@ -240,7 +240,7 @@ class TMI_MNB(TMI_Model):
 class TMI_DT(TMI_Model):
     model_name = 'TMI-DT'
 
-    def __init__(self, train_release, test_release):
+    def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
 
         # File level classifier
@@ -250,7 +250,7 @@ class TMI_DT(TMI_Model):
 class TMI_RF(TMI_Model):
     model_name = 'TMI-RF'
 
-    def __init__(self, train_release, test_release):
+    def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
 
         # File level classifier

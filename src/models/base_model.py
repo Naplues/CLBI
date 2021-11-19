@@ -15,7 +15,7 @@ class BaseModel(object):
     threshold = 50
     model_name = 'BaseModel'  # need to be rewrite in subclass
 
-    def __init__(self, train_release, test_release):
+    def __init__(self, train_release: str = '', test_release: str = ''):
         # Specific the actual name of each folder or file
 
         self.result_path = f'{root_path}Result/{self.model_name}/'

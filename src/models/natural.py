@@ -7,7 +7,7 @@ from src.models.base_model import BaseModel
 class NGram(BaseModel):
     model_name = 'NGram'
 
-    def __init__(self, train_release, test_release):
+    def __init__(self,train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
         self.model_file_path = f'{self.result_path}model_files/'
         self.entropy_result_file = f'{self.result_path}entropy_result/{self.project_name}/{self.test_release}-result.csv'
@@ -60,7 +60,7 @@ class NGram(BaseModel):
 class NGram_C(NGram):
     model_name = 'NGram-C'
 
-    def __init__(self, train_release, test_release):
+    def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
 
 

@@ -1,11 +1,10 @@
 # -*- coding:utf-8 -*-
 import warnings
 
-from src.exps.RQ2 import show_result
-from src.models.tools import PMD, CheckStyle
+from src.models.tools import *
 from src.models.explain import *
-from src.models.glance import Glance, Glance_EA, Glance_MD
-from src.models.natural import NGram, NGram_C
+from src.models.glance import *
+from src.models.natural import *
 
 # 忽略警告信息
 warnings.filterwarnings('ignore')
@@ -37,7 +36,7 @@ if __name__ == '__main__':
     # run_cross_release_predict(LineDP)
 
     # ======================= SAT-based approaches ============================
-    run_cross_release_predict(PMD)
+    # run_cross_release_predict(PMD)
     # run_cross_release_predict(CheckStyle)
 
     # ======================= LM-based approaches =============================
@@ -45,7 +44,8 @@ if __name__ == '__main__':
     # run_cross_release_predict(NGram_C)
 
     # ======================= CM-based approaches =============================
-    # run_cross_release_predict(Glance_Effort)
+    # run_cross_release_predict(Glance_EA)
     # run_cross_release_predict(Glance_MD)
+    run_cross_release_predict(Glance2)
 
     pass

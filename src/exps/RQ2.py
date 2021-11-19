@@ -1,106 +1,73 @@
 # -*- coding: utf-8 -*-
 from statistics import mean, median
 
+from pandas import DataFrame
+
 from src.models.explain import *
-from src.models.glance import Glance_EA, Glance_MD
-from src.models.natural import NGram, NGram_C
-from src.models.tools import PMD, CheckStyle
+from src.models.natural import *
+from src.models.tools import *
+from src.models.glance import *
 from src.utils.helper import *
 
 
-class RQ(object):
-    def __init__(self, model: BaseModel, project: str, release: str):
-        self.model = model
-        self.project_name = project
-        self.test_release = release
-
-        self.result_path = f'{root_path}Result/{self.model.model_name}/'
-        self.line_level_result_path = f'{self.result_path}line_result/'
-        self.line_level_result_file = f'{self.line_level_result_path}{self.project_name}/{self.test_release}-result.csv'
-        df = pd.read_csv(self.line_level_result_file)
-        self.predicted_buggy_lines = list(df['predicted_buggy_lines'])
-
-
-def prediction_result(prediction_model):
-    text = f'      \t========== {prediction_model.model_name} ==========\n'
-    text += '      \tRecall\tFAR  \tCE   \tD2H  \tMCC  \tIFA \tRecall@20%\tER\tRI\n'
-
-    df = pd.read_csv(prediction_model.line_level_evaluation_file)
-
-    recall = round(mean(list(df['recall'])), 3)
-    far = round(mean(list(df['far'])), 3)
-    ce = round(mean(list(df['ce'])), 3)
-    d2h = round(mean(list(df['d2h'])), 3)
-    mcc = round(mean(list(df['mcc'])), 3)
-    ifa = int(mean(list(df['ifa'])))
-    recall_20 = round(mean(list(df['recall_20'])), 3)
-    ER = round(mean(list(df['ER'])), 3)
-    RI = round(mean(list(df['RI'])), 3)
-    text += f'Mean  : {recall}\t{far}\t{ce}\t{d2h}\t{mcc}\t{ifa}\t{recall_20}\t{ER}\t{RI}\n'
-
-    recall = round(median(list(df['recall'])), 3)
-    far = round(median(list(df['far'])), 3)
-    ce = round(median(list(df['ce'])), 3)
-    d2h = round(median(list(df['d2h'])), 3)
-    mcc = round(median(list(df['mcc'])), 3)
-    ifa = int(median(list(df['ifa'])))
-    recall_20 = round(median(list(df['recall_20'])), 3)
-    ER = round(median(list(df['ER'])), 3)
-    RI = round(median(list(df['RI'])), 3)
-    text += f'Median: {recall}\t{far}\t{ce}\t{d2h}\t{mcc}\t{ifa}\t{recall_20}\t{ER}\t{RI}\n'
-
-    print(text)
-    return text
+def select_models(exp: str = 'RQ2'):
+    """
+    Select proper models according to different purposes.
+    :param exp: Experiment name
+    :return: A list of model instances.
+    """
+    if exp == 'RQ2':
+        m = [NGram(), NGram_C(), TMI_LR(), TMI_MNB(), TMI_SVM(), TMI_DT(), TMI_RF(), LineDP(), Glance_MD(), Glance_EA()]
+    elif exp == 'RQ3':
+        m = [PMD(), CheckStyle(), Glance_MD(), Glance_EA()]
+    else:
+        m = []
+    return m
 
 
-def show_result():
+def collect_line_level_summary_result(exp: str = 'RQ2', eva_method=None):
+    if eva_method is None:
+        eva_method = [mean, median]
     text = ''
-    text += prediction_result(Glance_MD('', ''))
-    text += prediction_result(Glance_EA('', ''))
+    models = select_models(exp)
+    for method in eva_method:
+        text += f'Approach,Recall,FAR,CE,D2H,MCC,IFA,Recall@20%,ER,RI\n'
+        for model in models:
+            df = pd.read_csv(model.line_level_evaluation_file)
 
-    text += prediction_result(TMI_LR('', ''))
-    text += prediction_result(TMI_SVM('', ''))
-    text += prediction_result(TMI_MNB('', ''))
-    text += prediction_result(TMI_DT('', ''))
-    text += prediction_result(TMI_RF('', ''))
-    text += prediction_result(LineDP('', ''))
-
-    text += prediction_result(NGram('', ''))
-    text += prediction_result(NGram_C('', ''))
-
-    text += prediction_result(PMD('', ''))
-    text += prediction_result(CheckStyle('', ''))
-
-    save_csv_result('../../result/', f'RQ1.csv', text)
+            recall = round(method(list(df['recall'])), 3)
+            far = round(method(list(df['far'])), 3)
+            ce = round(method(list(df['ce'])), 3)
+            d2h = round(method(list(df['d2h'])), 3)
+            mcc = round(method(list(df['mcc'])), 3)
+            ifa = int(method(list(df['ifa'])))
+            recall_20 = round(method(list(df['recall_20'])), 3)
+            ER = round(method(list(df['ER'])), 3)
+            RI = round(method(list(df['RI'])), 3)
+            text += f'{model.model_name},{recall},{far},{ce},{d2h},{mcc},{ifa},{recall_20},{ER},{RI}\n'
+        text += '\n'
+    save_csv_result(f'../../result/{exp}/', f'{exp}-line_level_result.csv', text)
 
 
-# ========================= Run RQ2 experiments =================================
-def run(prediction_model):
-    print(f'========== {prediction_model.model_name} ================='[:40])
-    texts = '\n'
-    df = pd.read_csv(prediction_model.line_level_evaluation_file)
-    new_file = df['ratio']
+# ======================== Line level result in terms of different indicators experiments =============================
+def collect_line_level_by_indicators(exp, indicator=None):
+    models = select_models(exp)
+    indicators = ['recall', 'far', 'ce', 'd2h', 'mcc', 'ifa', 'recall_20', 'ratio']
+    for indicator in indicators:
+        data = dict()
+        for model in models:
+            data[model.model_name] = pd.read_csv(model.line_level_evaluation_file)[indicator].tolist()
 
-    save_csv_result('../../result/', f'RQ2-{prediction_model.model_name}.csv', texts)
+        ratio = DataFrame(data, columns=[model.model_name for model in models])
+        ratio.to_csv(f'../../result/{exp}/{exp}-{indicator}.csv', index=False)
 
 
 if __name__ == '__main__':
     #
-    run(Glance_EA('', ''))
-    run(Glance_MD('', ''))
+    experiments = ["RQ2", "RQ3"]
+    for experiment in experiments:
+        # collect_line_level_summary_result(experiment)
+        collect_line_level_by_indicators(experiment)
 
-    run(TMI_LR('', ''))
-    run(TMI_MNB('', ''))
-    run(TMI_SVM('', ''))
-    run(TMI_DT('', ''))
-    run(TMI_RF('', ''))
-    run(LineDP('', ''))
-
-    run(NGram('', ''))
-    run(NGram_C('', ''))
-
-    run(PMD('', ''))
-    run(CheckStyle('', ''))
-
-    # show_result()
+        pass
     pass
