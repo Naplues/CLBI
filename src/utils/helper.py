@@ -23,6 +23,7 @@ file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
 
 
+# ============================================ Project & Release Information ===========================================
 def get_project_releases_dict():
     """
     :return: project releases dict: dict[project] = [r1, r2, ..., rn]
@@ -45,6 +46,24 @@ def get_project_list():
     return list(get_project_releases_dict().keys())
 
 
+def get_all_releases_list():
+    """
+    :return: release list: [r1, r2, ..., rn]
+    """
+    return PROJECT_RELEASE_LIST
+
+
+def get_test_releases_list():
+    """
+    :return: release list: [r1, r2, ..., rn]
+    """
+    releases_list = []
+    for project, releases in get_project_releases_dict().items():
+        releases_list.extend(releases[1:])
+    return releases_list
+
+
+# ============================================== Dataset Information ===========================================
 def read_file_level_dataset(proj, file_path=file_level_path):
     """
     :param proj:项目名

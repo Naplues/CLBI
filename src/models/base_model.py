@@ -12,13 +12,14 @@ from sklearn.linear_model import LogisticRegression
 
 
 class BaseModel(object):
-    threshold = 50
     model_name = 'BaseModel'  # need to be rewrite in subclass
 
-    def __init__(self, train_release: str = '', test_release: str = ''):
+    def __init__(self, train_release: str = '', test_release: str = '', test_result_path=''):
         # Specific the actual name of each folder or file
 
         self.result_path = f'{root_path}Result/{self.model_name}/'
+        if test_result_path != '':
+            self.result_path = test_result_path
         # folder path
         self.file_level_result_path = f'{self.result_path}file_result/'
         self.line_level_result_path = f'{self.result_path}line_result/'

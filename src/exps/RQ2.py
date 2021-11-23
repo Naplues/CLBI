@@ -2,7 +2,9 @@
 from statistics import mean, median
 
 from pandas import DataFrame
+import sys
 
+sys.path.append('C:/Users/gzq-712/Desktop/Git/CLDP/')
 from src.models.explain import *
 from src.models.natural import *
 from src.models.tools import *

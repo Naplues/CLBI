@@ -1,36 +1,28 @@
 # -*- coding: utf-8 -*-
 
+import sys
 
-class Animal:
-    def __init__(self, name):
+
+class A:
+    def __init__(self, name='ABC', age=20):
         self.name = name
-
-    def show(self):
-        print(self.name)
-
-
-class Dog(Animal):
-    def __init__(self, name, age=12):
-        super().__init__(name)
         self.age = age
 
     def show(self):
-        print('Dog', self.name, self.age)
+        print(self.name, self.age)
 
 
-class Cat(Animal):
-    def __init__(self, name, age=12):
-        super().__init__(name)
-        self.age = age
+class B(A):
+    def __init__(self, name, age):
+        super().__init__(name, age)
 
-    def show(self):
-        print('Cat', self.name, self.age)
-
-
-def fun(animal: Animal):
-    animal.show()
+    pass
 
 
 if __name__ == '__main__':
-    fun(Dog('aaa'))
-    fun(Cat('bbb'))
+    #
+    b = B('gzq', 12)
+    b.show()
+    c = B()
+    c.show()
+    pass
