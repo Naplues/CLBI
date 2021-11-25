@@ -19,9 +19,10 @@ def select_models(exp: str = 'RQ2'):
     :return: A list of model instances.
     """
     if exp == 'RQ2':
-        m = [NGram(), NGram_C(), TMI_LR(), TMI_MNB(), TMI_SVM(), TMI_DT(), TMI_RF(), LineDP(), Glance_MD(), Glance_EA()]
+        m = [NGram(), NGram_C(), TMI_LR(), TMI_MNB(), TMI_SVM(), TMI_DT(), TMI_RF(), LineDP(),
+             Glance_MD(), Glance_EA(), Glance_LR()]
     elif exp == 'RQ3':
-        m = [PMD(), CheckStyle(), Glance_MD(), Glance_EA()]
+        m = [PMD(), CheckStyle(), Glance_MD(), Glance_EA(), Glance_LR()]
     else:
         m = []
     return m
@@ -33,7 +34,7 @@ def collect_line_level_summary_result(exp: str = 'RQ2', eva_method=None):
     text = ''
     models = select_models(exp)
     for method in eva_method:
-        text += f'Approach,Recall,FAR,CE,D2H,MCC,IFA,Recall@20%,ER,RI\n'
+        text += f'Approach,Recall,FAR,CE,D2H,MCC,IFA,Recall@20%,ratio\n'
         for model in models:
             df = pd.read_csv(model.line_level_evaluation_file)
 
@@ -44,15 +45,16 @@ def collect_line_level_summary_result(exp: str = 'RQ2', eva_method=None):
             mcc = round(method(list(df['mcc'])), 3)
             ifa = int(method(list(df['ifa'])))
             recall_20 = round(method(list(df['recall_20'])), 3)
-            ER = round(method(list(df['ER'])), 3)
-            RI = round(method(list(df['RI'])), 3)
-            text += f'{model.model_name},{recall},{far},{ce},{d2h},{mcc},{ifa},{recall_20},{ER},{RI}\n'
+            ratio = round(method(list(df['ratio'])), 3)
+            # ER = round(method(list(df['ER'])), 3)
+            # RI = round(method(list(df['RI'])), 3)
+            text += f'{model.model_name},{recall},{far},{ce},{d2h},{mcc},{ifa},{recall_20},{ratio}\n'
         text += '\n'
-    save_csv_result(f'../../result/{exp}/', f'{exp}-line_level_result.csv', text)
+    save_csv_result(f'../../result/{exp}/', f'Performance_Summary.csv', text)
 
 
-# ======================== Line level result in terms of different indicators experiments =============================
-def collect_line_level_by_indicators(exp, indicator=None):
+# =================== Line level result in terms of different Performance Indicators experiments ================
+def collect_line_level_by_indicators(exp):
     models = select_models(exp)
     indicators = ['recall', 'far', 'ce', 'd2h', 'mcc', 'ifa', 'recall_20', 'ratio']
     for indicator in indicators:
@@ -61,14 +63,13 @@ def collect_line_level_by_indicators(exp, indicator=None):
             data[model.model_name] = pd.read_csv(model.line_level_evaluation_file)[indicator].tolist()
 
         ratio = DataFrame(data, columns=[model.model_name for model in models])
-        ratio.to_csv(f'../../result/{exp}/{exp}-{indicator}.csv', index=False)
+        ratio.to_csv(f'../../result/{exp}/Performance Indicators/{indicator}.csv', index=False)
 
 
 if __name__ == '__main__':
     #
-    experiments = ["RQ2", "RQ3"]
-    for experiment in experiments:
-        # collect_line_level_summary_result(experiment)
+    for experiment in ["RQ2", "RQ3"]:
+        collect_line_level_summary_result(experiment)
         collect_line_level_by_indicators(experiment)
 
         pass

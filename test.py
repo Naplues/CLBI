@@ -1,28 +1,18 @@
 # -*- coding: utf-8 -*-
 
-import sys
-
-
-class A:
-    def __init__(self, name='ABC', age=20):
-        self.name = name
-        self.age = age
-
-    def show(self):
-        print(self.name, self.age)
-
-
-class B(A):
-    def __init__(self, name, age):
-        super().__init__(name, age)
-
-    pass
-
+import numpy as np
+import scipy.stats as stats
 
 if __name__ == '__main__':
     #
-    b = B('gzq', 12)
-    b.show()
-    c = B()
-    c.show()
+    np.random.seed(1)
+    x = [round(1 + np.random.random(), 3) for i in range(10)]
+    y = [round(3 + np.random.random(), 3) for i in range(10)]
+
+    print(x)
+    print(y)
+    test = stats.wilcoxon(x, y, correction=True)
+
+    print(test)
+
     pass

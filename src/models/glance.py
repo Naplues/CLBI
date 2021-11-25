@@ -221,7 +221,7 @@ class Glance_LR(Glance):
     """
     model_name = 'Glance-LR'
 
-    def __init__(self, train_release, test_release, line_threshold=0.5, test=False):
+    def __init__(self, train_release='', test_release='', line_threshold=0.5, test=False):
         test_result_path = ''
         if test:
             self.model_name = f'Glance-LR-{str(int(line_threshold * 100))}'

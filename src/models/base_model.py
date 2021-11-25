@@ -42,9 +42,6 @@ class BaseModel(object):
         self.vector = CountVectorizer(lowercase=False, min_df=2)
         self.clf = LogisticRegression(random_state=0)
 
-        if train_release == '' and test_release == '':
-            return
-
         # file level data 文件级数据
         self.train_text, self.train_text_lines, self.train_label, self.train_filename = \
             read_file_level_dataset(train_release)
@@ -92,6 +89,8 @@ class BaseModel(object):
         make_path(f'{self.line_level_result_path}{self.project_name}/')
 
     def get_actual_buggy_lines(self):
+        if len(self.oracle_line_dict.keys()) == 0:
+            self.oracle_line_dict = read_line_level_dataset(self.test_release)
         oracle_line_list = set()
         for file_name in self.oracle_line_dict:
             oracle_line_list.update([f'{file_name}:{line}' for line in self.oracle_line_dict[file_name]])
@@ -208,7 +207,7 @@ class BaseModel(object):
         ################################# Loading predicted lines, scores, and density #################################
         self.load_line_level_result()
 
-        ######################### Classification performance indicators ################################################
+        ######################### Classification performance Performance Performance Indicators ################################################
         tp = len(self.actual_buggy_lines.intersection(self.predicted_buggy_lines))
         fp = self.num_predict_buggy_lines - tp
         fn = self.num_actual_buggy_lines - tp
@@ -233,7 +232,7 @@ class BaseModel(object):
         ER = .0 if (y * N) == .0 else (y * N - x * n) / (y * N)
         RI = .0 if (x * n) == 0 else (y * N - x * n) / (x * n)
 
-        ################################ Ranking performance indicators ################################################
+        ################################ Ranking performance Performance Performance Indicators ################################################
         ifa, r_20 = .0, .0
         if self.rank_strategy == 1:
             ifa, r_20 = self.rank_strategy_1()  # Strategy 1

@@ -64,13 +64,15 @@ def get_test_releases_list():
 
 
 # ============================================== Dataset Information ===========================================
-def read_file_level_dataset(proj, file_path=file_level_path):
+def read_file_level_dataset(release='', file_path=file_level_path):
     """
-    :param proj:项目名
+    :param release:项目名
     :param file_path
     :return:
     """
-    path = f'{file_path}{proj}{file_level_path_suffix}'
+    if release == '':
+        return [], [], [], []
+    path = f'{file_path}{release}{file_level_path_suffix}'
     with open(path, 'r', encoding='utf-8', errors='ignore') as file:
         lines = file.readlines()
         # 文件信息索引列表, 每个文件名不一样该语句才没有错误 TODO line.index(line)
@@ -102,12 +104,14 @@ def read_file_level_dataset(proj, file_path=file_level_path):
         return texts, texts_lines, numeric_labels, src_files
 
 
-def read_line_level_dataset(proj):
+def read_line_level_dataset(release=''):
     """
-    :param proj: 项目名
+    :param release: 项目名
     :return: 字典：dict[文件名] = [bug行号]
     """
-    path = f'{line_level_path}{proj}{line_level_path_suffix}'
+    if release == '':
+        return dict()
+    path = f'{line_level_path}{release}{line_level_path_suffix}'
     with open(path, 'r', encoding='utf-8', errors='ignore') as file:
         lines = file.readlines()
         file_buggy_lines_dict = {}
@@ -183,35 +187,6 @@ def add_value(avg_data, line):
     for index in range(len(values)):
         avg_data[index] += float(values[index])
     return avg_data
-
-
-def combine_cross_results_for_each_project(path):
-    """
-    将行级别的评估结果组合在一个文件中
-    :param path:
-    :return:
-    """
-    text_normal = 'Mode,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
-    text_worst = 'Mode,Test release,Recall,FAR,d2h,MCC,CE,Recall@20%,IFA_mean,IFA_median\n'
-    for proj in get_project_list():
-        avg_normal, avg_worst = [.0] * 8, [.0] * 8
-        with open(f'{path}line_level_evaluation_{proj}.csv', 'r') as file:
-            count = 0
-            for line in file.readlines()[1:]:
-                if count % 2 == 0:
-                    avg_normal = add_value(avg_normal, line)
-                else:
-                    avg_worst = add_value(avg_worst, line)
-                count += 1
-        avg_normal = list(np.array(avg_normal) * 2 / count)
-        avg_worst = list(np.array(avg_worst) * 2 / count)
-        text_normal += f'normal,{proj},' + ','.join([str(e) for e in avg_normal]) + '\n'
-        text_worst += f'worst,{proj},' + ','.join([str(e) for e in avg_worst]) + '\n'
-
-    with open(f'{path}result_normal_single_project.csv', 'w') as file:
-        file.write(text_normal)
-    with open(f'{path}result_worst_single_project.csv', 'w') as file:
-        file.write(text_worst)
 
 
 def eval_ifa(path):
