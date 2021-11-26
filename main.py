@@ -15,7 +15,7 @@ MODEL_DICT = {'TMI-LR': TMI_LR, 'TMI-SVM': TMI_SVM, 'TMI-MNB': TMI_MNB, 'TMI-DT'
               'LineDP': LineDP,
               'PMD': PMD, 'CheckStyle': CheckStyle,
               'NGram': NGram, 'NGram-C': NGram_C,
-              'Glance-EA': Glance_EA, 'Glance-MD': Glance_MD, 'Glance-LR': Glance_LR,
+              'Glance-EA': Glance_EA, 'Glance-MD': Glance_MD, 'Glance-LR': Glance_LR, 'Glance-EA-SATD': Glance_EA_SATD,
               }
 
 
@@ -51,7 +51,8 @@ def parse_args():
     # Run the specific models.
     else:
         model_name = sys.argv[1]
-        run_cross_release_predict(MODEL_DICT[model_name])
+        if model_name in MODEL_DICT.keys():
+            run_cross_release_predict(MODEL_DICT[model_name])
 
 
 if __name__ == '__main__':

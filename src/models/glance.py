@@ -119,7 +119,7 @@ class Glance_MD(Glance):
         test_result_path = ''
         if test:
             self.model_name = f'Glance-MD-{str(int(file_threshold * 100))}-{str(int(line_threshold * 100))}'
-            test_result_path = f'{root_path}Result/RQ1/{self.model_name}/'
+            test_result_path = f'{root_path}Result/Dis1/{self.model_name}/'
         super().__init__(train_release, test_release, line_threshold, test_result_path)
         # File level classification threshold for unsupervised methods
         self.file_threshold = file_threshold
@@ -170,7 +170,7 @@ class Glance_EA(Glance):
         test_result_path = ''
         if test:
             self.model_name = f'Glance-EA-{str(int(file_threshold * 100))}-{str(int(line_threshold * 100))}'
-            test_result_path = f'{root_path}Result/RQ1/{self.model_name}/'
+            test_result_path = f'{root_path}Result/Dis1/{self.model_name}/'
         super().__init__(train_release, test_release, line_threshold, test_result_path)
         # File level classification threshold for unsupervised methods
         self.file_threshold = file_threshold
@@ -213,6 +213,64 @@ class Glance_EA(Glance):
         self.save_file_level_result()
 
 
+################################## Glance-EA_SATD Supervised ###############################################
+class Glance_EA_SATD(Glance):
+    """
+    File level classifier: Effort-Aware ManualDown and SATD
+    """
+    model_name = 'Glance-EA-SATD'
+
+    def __init__(self, train_release='', test_release='', line_threshold=0.5, file_threshold=0.5, test=False):
+        test_result_path = ''
+        if test:
+            self.model_name = f'Glance-EA-{str(int(file_threshold * 100))}-{str(int(line_threshold * 100))}'
+            test_result_path = f'{root_path}Result/Dis1/{self.model_name}/'
+        super().__init__(train_release, test_release, line_threshold, test_result_path)
+        # File level classification threshold for unsupervised methods
+        self.file_threshold = file_threshold
+
+    def file_level_prediction(self):
+        if USE_CACHE and os.path.exists(self.file_level_result_file):
+            return
+
+        num_of_files = len(self.test_text)
+        test_prediction = np.zeros(num_of_files, dtype=int).tolist()  # 初始化空的list
+
+        # 每个文件的非空代码行, 自承认技术债, 分数
+        loc, debts, score = [], [], []
+        for file_index in range(num_of_files):
+            # 所有测试文件的代码行组成的列表
+            loc.append(len([line for line in self.test_text_lines[file_index] if line.strip() != '']))
+            # 所有测试文件包含的SATD数组成的列表
+            debts.append(len([tag for tag in self.tags if tag in self.test_text[file_index].lower()]))
+
+        # 不包含技术债的文件排除掉
+        score = loc
+        # 降序排列索引
+        sorted_index = np.argsort(score).tolist()[::-1]
+
+        # 重新排序, 将包含CC的代码行排在前面
+        resorted_index = [i for i in sorted_index if debts[i] != 0]  # 包含SATD的代码行索引
+        resorted_index.extend([i for i in sorted_index if debts[i] == 0])  # 不包含SATD的代码行索引
+
+        # 全部工作量 和 累积工作量
+        effort_all, effort_acc = sum(loc), 0
+        file_count = 0
+        for index in resorted_index:
+            if effort_acc < effort_all * self.file_threshold:
+                test_prediction[index] = 1
+                effort_acc += loc[index]
+                file_count += 1
+            else:
+                break
+
+        self.test_pred_labels = test_prediction
+        self.test_pred_scores = np.array(score)
+
+        # Save file level result
+        self.save_file_level_result()
+
+
 ################################## Glance-LR Supervised ###############################################
 
 class Glance_LR(Glance):
@@ -225,7 +283,7 @@ class Glance_LR(Glance):
         test_result_path = ''
         if test:
             self.model_name = f'Glance-LR-{str(int(line_threshold * 100))}'
-            test_result_path = f'{root_path}Result/RQ1/{self.model_name}/'
+            test_result_path = f'{root_path}Result/Dis1/{self.model_name}/'
         super().__init__(train_release, test_release, line_threshold, test_result_path)
 
     def file_level_prediction(self):

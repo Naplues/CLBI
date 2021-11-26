@@ -13,8 +13,10 @@ from statistics import *
 # Ignore warning information
 warnings.filterwarnings('ignore')
 
-# .05, .10, .15, .20, .25, .30, .35, .40, .45, .50, .55, .60, .65, .70, .55, .80, .85, .90, .95, 1
-line_level_thresholds = [.05, .10, .15, .20, .25, .30, .35, .40, .45, .50, ]
+# .05, .10, .15, .20, .25, .30, .35, .40, .45, .50, .55, .60, .65, .70, .75, .80, .85, .90, .95, 1
+line_thresholds = [.05, .10, .15, .20, .25, .30, .35, .40, .45, .50, .55, .60, .65, .70, .75, .80, .85, .90, .95, 1]
+threshold_indices = ['5%', '10%', '15%', '20%', '25%', '30%', '35%', '40%', '45%', '50%', '55%', '60%', '65%', '70%',
+                     '75%', '80%', '85%', '90%', '95%', '100%', ]
 indicators = ['recall', 'far', 'ce', 'd2h', 'mcc', 'ifa', 'recall_20', 'ratio']
 
 output_path = '../../result/Dis1/'
@@ -32,7 +34,7 @@ def select_model(file_level_classifier, line_level_threshold, train='', test='')
 
 
 def search_parameter_Glance(clf):
-    for threshold in line_level_thresholds:
+    for threshold in line_thresholds:
         for project, releases in get_project_releases_dict().items():
             for i in range(len(releases) - 1):
                 # 1. Loading data. train data index = i, test data index = i + 1
@@ -55,7 +57,7 @@ def test_parameter(clf):
         summary_data_horizontal, summary_data_vertical = list(), dict()
         for indicator in indicators:
             detail_data, column_names, mean_list = dict(), list(), list()
-            for threshold in line_level_thresholds:
+            for threshold in line_thresholds:
                 model = select_model(clf, threshold)
                 column_names.append(model.model_name)
                 detail_data[model.model_name] = list(pd.read_csv(model.line_level_evaluation_file)[indicator])
@@ -68,11 +70,8 @@ def test_parameter(clf):
             detail_result = DataFrame(detail_data, index=get_test_releases_list(), columns=column_names)
 
             make_path(f'{output_path}Glance-{clf}/')
-            detail_result.to_csv(f'{output_path}Glance-{clf}/{method.__name__}-{indicator}.csv', index=True)
+            detail_result.to_csv(f'{output_path}Glance-{clf}/{indicator}.csv', index=True)
 
-        # '5%', '10%', '15%', '20%', '25%', '30%', '35%', '40%', '45%', '50%',
-        # '55%', '60%', '65%', '70%', '75%', '80%', '85%', '90%', '95%', '100%',
-        threshold_indices = ['5%', '10%', '15%', '20%', '25%', '30%', '35%', '40%', '45%', '50%', ]
         summary_result = DataFrame(summary_data_horizontal, index=indicators, columns=threshold_indices)
         summary_result.to_csv(f'{output_path}Dis1-summary-{method.__name__}-Glance-{clf}-horizontal.csv', index=True)
         summary_result = DataFrame(summary_data_vertical, index=threshold_indices, columns=indicators)
