@@ -19,7 +19,7 @@ threshold_indices = ['5%', '10%', '15%', '20%', '25%', '30%', '35%', '40%', '45%
                      '75%', '80%', '85%', '90%', '95%', '100%', ]
 indicators = ['recall', 'far', 'ce', 'd2h', 'mcc', 'ifa', 'recall_20', 'ratio']
 
-output_path = '../../result/Dis1/'
+output_path = '../../result/Dis1_2/'
 make_path(output_path)
 
 

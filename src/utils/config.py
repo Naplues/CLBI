@@ -43,7 +43,6 @@ PROJECT_RELEASE_LIST = [
     'bookkeeper-4.0.0', 'bookkeeper-4.2.0', 'bookkeeper-4.4.0',
     'calcite-1.6.0', 'calcite-1.8.0', 'calcite-1.11.0', 'calcite-1.13.0',
     'calcite-1.15.0', 'calcite-1.16.0', 'calcite-1.17.0', 'calcite-1.18.0',
-    # 'camel-2.11.0', 'camel-2.12.0', 'camel-2.13.0', 'camel-2.14.0', 'camel-2.17.0', 'camel-2.18.0', 'camel-2.19.0',
     'cassandra-0.7.4', 'cassandra-0.8.6', 'cassandra-1.0.9', 'cassandra-1.1.6', 'cassandra-1.1.11', 'cassandra-1.2.11',
     'flink-1.4.0', 'flink-1.6.0',
     'groovy-1.0', 'groovy-1.5.5', 'groovy-1.6.0', 'groovy-1.7.3', 'groovy-1.7.6', 'groovy-1.8.1', 'groovy-1.8.7',
@@ -64,6 +63,8 @@ PROJECT_RELEASE_LIST = [
     'ww-2.0.0', 'ww-2.0.5', 'ww-2.0.10', 'ww-2.1.1', 'ww-2.1.3', 'ww-2.1.7', 'ww-2.2.0', 'ww-2.2.2', 'ww-2.3.1',
     'ww-2.3.4', 'ww-2.3.10', 'ww-2.3.15', 'ww-2.3.17', 'ww-2.3.20', 'ww-2.3.24',
     'zookeeper-3.4.6', 'zookeeper-3.5.1', 'zookeeper-3.5.2', 'zookeeper-3.5.3',
+
+# 'camel-2.11.0', 'camel-2.12.0', 'camel-2.13.0', 'camel-2.14.0', 'camel-2.17.0', 'camel-2.18.0', 'camel-2.19.0',
 ]
 
 # --------------------------------

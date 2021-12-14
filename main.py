@@ -41,8 +41,10 @@ def run_default():
     # ======= NLP-based approaches ======= NGram, NGram_C
     # ======= Glance-XX approaches ======= Glance_MD, Glance_EA, Glance_LR
 
-    run_cross_release_predict(Glance_LR)
-
+    # run_cross_release_predict(Glance_LR)
+    # run_cross_release_predict(Glance_EA)
+    # run_cross_release_predict(Glance_MD)
+    run_cross_release_predict(LineDP)
 
 def parse_args():
     # If there is no additional parameters in the command line, run the default models.
