@@ -41,21 +41,30 @@ def calc_test(data):
     return test_count
 
 
+def get_same_files(prefix, prev_release, next_release):
+    prev_files = set(os.listdir(f'{prefix}{prev_release}/'))
+    next_files = set(os.listdir(f'{prefix}{next_release}/'))
+    intersection = list(prev_files.intersection(next_files))
+    for i in range(len(intersection)):
+        intersection[i] = intersection[i].replace(f'{prefix}{prev_release}/', '').replace('.', '/')[:-5] + '.java'
+    return set(intersection)
+
+
 def compare(prefix, prev_release, next_release):
     prev_path = f'{prefix}{prev_release}/'
     next_path = f'{prefix}{next_release}/'
     prev_files = set(os.listdir(prev_path))
     next_files = set(os.listdir(next_path))
     intersection = list(prev_files.intersection(next_files))
-    print(len(prev_files), len(next_files))
-    total = len(intersection)
-    print(total)
+    same_files = len(intersection)
+    print(f'{len(prev_files)} ∩ {len(next_files)} = {same_files}, '
+          f'Specific: {len(prev_files - next_files)} in prev release, {len(next_files - prev_files)} in next release.')
     diff_file_name = f'diff/{prev_release}-{next_release}.diff'
-    with open(diff_file_name, 'w') as file:
-        file.truncate()
-    for i in range(total):
+    with open(diff_file_name, 'w') as f:
+        f.truncate()
+    for i in range(same_files):
         file = intersection[i]
-        print(f'{i}/{total}', file)
+        print(f'{i}/{same_files}', file)
         os.system(f'diff -B -q {prev_path}{file} {next_path}{file} >> {diff_file_name}')
 
 
@@ -64,7 +73,7 @@ def get_diff_files(prefix, prev_release, next_release):
     files = read_data_from_file(diff_file_name)
     for i in range(len(files)):
         files[i] = files[i].split(' ')[1]
-        files[i] = files[i].replace(f'{prefix}{prev_release}/', '').replace('.java', '').replace('.', '/') + '.java'
+        files[i] = files[i].replace(f'{prefix}{prev_release}/', '').replace('.', '/')[:-5] + '.java'
     return set(files)
 
 
@@ -74,26 +83,41 @@ def get_defective_files(release):
     return set(files), set(src_files)
 
 
-if __name__ == '__main__':
-    text = ''
+def fun():
+    text = 'prev_rel,next_rel,diff files,'
     prefix_path = f'{root_path}Dataset/Source/'
     for project, releases in get_project_releases_dict().items():
+        if project != 'amq':
+            continue
         for i in range(len(releases) - 1):
             prev_rel, next_rel = releases[i], releases[i + 1]
             # compare(prefix_path, prev_rel, next_rel)
+            # 两个版本中的同名文件
+            same_files = get_same_files(prefix_path, prev_rel, next_rel)
+            # 同名文件中发生变化的文件
             diff_files = get_diff_files(prefix_path, prev_rel, next_rel)
+            # 同名文件中未发生变化的文件
+            no_diff_files = same_files - diff_files
+
             buggy_1, all_1 = get_defective_files(prev_rel)
             buggy_2, all_2 = get_defective_files(next_rel)
 
-            insert1 = diff_files.intersection(buggy_1)
-            insert2 = diff_files.intersection(buggy_2)
+            # 同名的bug文件
             insert3 = buggy_1.intersection(buggy_2)
+            buggy_files_with_same_name = len(insert3)
+            # 未发生变动的文件
+            insert3 = insert3.intersection(no_diff_files)
+            buggy_files_with_same_name_same_text = len(insert3)
 
-            text += f'{prev_rel}-{next_rel},{len(diff_files)},{len(insert3)},' \
-                    f'{len(insert1)}/{len(buggy_1)}/{len(all_1)},{len(insert2)}/{len(buggy_2)}/{len(all_2)}\n'
-            print(f'{prev_rel}-{next_rel},{len(diff_files)},{len(insert3)},'
-                  f'{len(insert1)}/{len(buggy_1)}/{len(all_1)},{len(insert2)}/{len(buggy_2)}/{len(all_2)}\n')
-
-
-    pass
+            ratio_of_same_text = int(round(buggy_files_with_same_name_same_text / buggy_files_with_same_name, 3) * 100)
+            string_of_same_text = f'{buggy_files_with_same_name_same_text}/{buggy_files_with_same_name}'
+            text += f'{prev_rel}-{next_rel},{string_of_same_text},{ratio_of_same_text}'
+            print(f'{prev_rel}-{next_rel},{string_of_same_text},{ratio_of_same_text}%')
+        break
     # save_result('result.csv', text)
+    pass
+
+
+if __name__ == '__main__':
+    fun()
+    pass
