@@ -450,11 +450,12 @@ if __name__ == '__main__':
     # output_box_data_for_metric()
     # make_source_file()
     # make_udb_file()
-    # dataset_statistics()
+    dataset_statistics()
     # print(get_project_list())
     # print(get_project_releases_dict())
     # read_file_level_dataset(get_project_releases_dict()['lucene'][0])
     # read_line_level_dataset(get_project_releases_dict()['lucene'][0])
     # export_source_file()
-    get_bug_number()
+    # get_bug_number()
+
     pass
