@@ -10,6 +10,7 @@ This repository stores the **source codes** of the four categories of state-of-t
 
 - [`CLBI/result/`](https://github.com/Naplues/CLBI/tree/master/result) This folder stores all classification results of the each approaches.
 
+- [`BugDet/dataset/`](https://github.com/Naplues/BugDet/tree/master/Dataset) This folder stores all 19 projects in datasets.
 
 ## 2. Execution commands
 In order to make it easier to obtain the classification results, one can run it according to the following command regulation.
