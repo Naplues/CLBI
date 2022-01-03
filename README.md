@@ -20,6 +20,7 @@ In above command,
 -	`[model_name]` indicates a CLBI approach, i.e., PMD, CheckStyle, NGram, NGram_C, TMI_LR, TMI_SVM, TMI_MNB, TMI_DT, TMI_RF, LineDP, GLANCE_EA, GLANCE_MD, and GLANCE_LR.
 
 Here is some usage examples:
+
 `python main.py PMD`
 
 `python main.py GLANCE_EA`
