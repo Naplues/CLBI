@@ -242,8 +242,8 @@ class BaseModel(object):
             ifa, r_20 = self.rank_strategy_3()  # Strategy 1
 
         ################################ Bug hit ratio ################################################
-        # buggy_lines_dict = read_dict_from_file(f'{self.commit_buggy_path}/{self.test_release}_commit_buggy_lines.csv')
-        buggy_lines_dict = {}  # = read_dict_from_file(f'{self.commit_buggy_path}/{self.test_release}_commit_buggy_lines.csv')
+        buggy_lines_dict = read_dict_from_file(f'{self.commit_buggy_path}/{self.test_release}_commit_buggy_lines.csv')
+        # buggy_lines_dict = {}  # = read_dict_from_file(f'{self.commit_buggy_path}/{self.test_release}_commit_buggy_lines.csv')
         total_bugs = len(buggy_lines_dict.keys())
         hit_bugs = set()
         for line in self.predicted_buggy_lines:
