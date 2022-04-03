@@ -5,7 +5,7 @@ from src.models.base_model import BaseModel
 
 
 class NGram(BaseModel):
-    model_name = 'NGram'
+    model_name = 'NLP-NGram'
 
     def __init__(self,train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
@@ -58,7 +58,7 @@ class NGram(BaseModel):
 
 
 class NGram_C(NGram):
-    model_name = 'NGram-C'
+    model_name = 'NLP-NGram-C'
 
     def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)

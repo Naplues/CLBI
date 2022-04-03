@@ -119,7 +119,7 @@ class StaticAnalysisTool(BaseModel):
 # ################################################ PMD ##########################################################
 
 class PMD(StaticAnalysisTool):
-    model_name = 'PMD'
+    model_name = 'SAT-PMD'
 
     def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
@@ -162,7 +162,7 @@ class PMD(StaticAnalysisTool):
 
 # ################################################ CheckStyle ##########################################################
 class CheckStyle(StaticAnalysisTool):
-    model_name = 'CheckStyle'
+    model_name = 'SAT-CheckStyle'
 
     def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)

@@ -27,6 +27,7 @@ class BaseModel(object):
         # evaluation path
         self.file_level_evaluation_file = f'{self.file_level_result_path}evaluation.csv'
         self.line_level_evaluation_file = f'{self.line_level_result_path}evaluation.csv'
+        self.time_file = f'{self.result_path}time.csv'
 
         # Model configuration info
         self.project_name = train_release.split('-')[0]

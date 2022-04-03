@@ -115,7 +115,7 @@ class Glance_MD(Glance):
     """
     File level classifier: ManualDown
     """
-    model_name = 'Glance-MD'
+    model_name = 'BASE-Glance-MD'
 
     def __init__(self, train_release='', test_release='', line_threshold=0.5, file_threshold=0.5, test=False):
         test_result_path = ''
@@ -166,7 +166,7 @@ class Glance_EA(Glance):
     """
     File level classifier: Effort-Aware ManualDown
     """
-    model_name = 'Glance-EA'
+    model_name = 'BASE-Glance-EA'
 
     def __init__(self, train_release='', test_release='', line_threshold=0.5, file_threshold=0.5, test=False):
         test_result_path = ''
@@ -279,7 +279,7 @@ class Glance_LR(Glance):
     """
     File level classifier: Logistic Regression
     """
-    model_name = 'Glance-LR'
+    model_name = 'BASE-Glance-LR'
 
     def __init__(self, train_release='', test_release='', line_threshold=0.5, test=False):
         test_result_path = ''
