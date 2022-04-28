@@ -66,11 +66,69 @@ def collect_line_level_by_indicators(exp):
         ratio.to_csv(f'../../result/{exp}/Performance Indicators/{indicator}.csv', index=False)
 
 
+# =================== Line level result in terms of different Indicators and project experiments ================
+def collect_line_level_by_indicators_project_RQ2():
+    indicators = ['recall', 'far', 'ce', 'd2h', 'mcc', 'ifa', 'recall_20', 'ratio']
+    for indicator in indicators:
+
+        all_data = read_data_from_file(f'../../result/RQ2/Performance Indicators/{indicator}.csv')[1:]
+
+        text = 'NGram,NGram-C,TMI-LR,TMI-MNB,TMI-SVM,TMI-DT,TMI-RF,LineDP,Glance-MD,Glance-EA,Glance-LR\n'
+        count = 0
+        for project, releases in get_project_releases_dict().items():
+            m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10 = [], [], [], [], [], [], [], [], [], [], []
+            for i in range(len(releases) - 1):
+                values = all_data[count].split(',')
+                m0.append(float(values[0]))
+                m1.append(float(values[1]))
+                m2.append(float(values[2]))
+                m3.append(float(values[3]))
+                m4.append(float(values[4]))
+                m5.append(float(values[5]))
+                m6.append(float(values[6]))
+                m7.append(float(values[7]))
+                m8.append(float(values[8]))
+                m9.append(float(values[9]))
+                m10.append(float(values[10]))
+
+                count += 1
+            text += f'{project},{mean(m0)},{mean(m1)},{mean(m2)},{mean(m3)},{mean(m4)},' \
+                    f'{mean(m5)},{mean(m6)},{mean(m7)},{mean(m8)},{mean(m9)},{mean(m10)}\n'
+
+        save_csv_result(f'../../result/RQ2/Performance Indicators/', f'avg-{indicator}.csv', text)
+
+
+def collect_line_level_by_indicators_project_RQ3():
+    indicators = ['recall', 'far', 'ce', 'd2h', 'mcc', 'ifa', 'recall_20', 'ratio']
+    for indicator in indicators:
+
+        all_data = read_data_from_file(f'../../result/RQ3/Performance Indicators/{indicator}.csv')[1:]
+
+        text = 'PMD,CheckStyle,Glance-MD,Glance-EA,Glance-LR\n'
+        count = 0
+        for project, releases in get_project_releases_dict().items():
+            m0, m1, m2, m3, m4 = [], [], [], [], []
+            for i in range(len(releases) - 1):
+                values = all_data[count].split(',')
+                m0.append(float(values[0]))
+                m1.append(float(values[1]))
+                m2.append(float(values[2]))
+                m3.append(float(values[3]))
+                m4.append(float(values[4]))
+
+                count += 1
+            text += f'{project},{mean(m0)},{mean(m1)},{mean(m2)},{mean(m3)},{mean(m4)}\n'
+
+        save_csv_result(f'../../result/RQ3/Performance Indicators/', f'avg-{indicator}.csv', text)
+
+
 if __name__ == '__main__':
     #
     for experiment in ["RQ2", "RQ3"]:
-        collect_line_level_summary_result(experiment)
-        collect_line_level_by_indicators(experiment)
-
+        # collect_line_level_summary_result(experiment)
+        # collect_line_level_by_indicators(experiment)
         pass
+
+    # collect_line_level_by_indicators_project_RQ2()
+    collect_line_level_by_indicators_project_RQ3()
     pass

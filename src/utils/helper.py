@@ -330,6 +330,7 @@ def is_test_file(src):
     # return 'test/' in src or 'tests/' in src or src.endswith('Test.java')
     return False
 
+
 def is_non_java_file(src):
     """
     Whether the target source file is not a java file OK
@@ -445,16 +446,31 @@ def get_bug_number():
         print(f'{min(total_bugs)}~{max(total_bugs)}')
 
 
+def calc_auc(label, pred):
+    pos = [i for i in range(len(label)) if label[i] == 1]
+    neg = [i for i in range(len(label)) if label[i] == 0]
+    # 计算正样本和负样本的索引, 以便索引出之后的概率值
+    auc = 0
+    for i in pos:
+        for j in neg:
+            if pred[i] > pred[j]:
+                auc += 1
+            elif pred[i] == pred[j]:
+                auc += 0.5
+    return auc / (len(pos) * len(neg))
+
+
 if __name__ == '__main__':
     # remove_test_or_non_java_file_from_dataset()
     # output_box_data_for_metric()
     # make_source_file()
     # make_udb_file()
-    # dataset_statistics()
+    dataset_statistics()
     # print(get_project_list())
     # print(get_project_releases_dict())
     # read_file_level_dataset(get_project_releases_dict()['lucene'][0])
     # read_line_level_dataset(get_project_releases_dict()['lucene'][0])
     # export_source_file()
-    get_bug_number()
+    # get_bug_number()
+
     pass

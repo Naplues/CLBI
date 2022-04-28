@@ -19,7 +19,7 @@ from lime.lime_text import LimeTextExplainer
 
 
 class LineDP(BaseModel):
-    model_name = 'LineDP'
+    model_name = 'MIT-LineDP'
 
     def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
@@ -27,8 +27,6 @@ class LineDP(BaseModel):
         # File level classifier
         self.vector = CountVectorizer(lowercase=False, min_df=2)
         self.clf = LogisticRegression(random_state=0)
-
-        self.rank_strategy = 3
 
     def line_level_prediction(self):
         """
@@ -110,7 +108,7 @@ class LineDP(BaseModel):
 
 #################################### Traditional model interpretation approaches #######################################
 class TMI_Model(BaseModel):
-    model_name = 'TMI-Model'
+    model_name = 'MIT-TMI-Model'
 
     def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
@@ -149,13 +147,13 @@ class TMI_Model(BaseModel):
         # ####################################### 获取解释的单词特征 #################################################
         # 特征重要性字典
         feature_weight_dict = dict()
-        if self.model_name == 'TMI-LR' or self.model_name == 'TMI-SVM' or self.model_name == 'TMI-MNB':
+        if self.model_name == 'MIT-TMI-LR' or self.model_name == 'MIT-TMI-SVM' or self.model_name == 'MIT-TMI-MNB':
             # 标准化处理
             std = StandardScaler()
             std_coefficient = std.fit_transform(self.clf.coef_.reshape(-1, 1))
             feature_weight_dict = dict(zip(self.vector.get_feature_names(), std_coefficient.T[0]))
 
-        elif self.model_name == 'TMI-DT' or self.model_name == 'TMI-RF':
+        elif self.model_name == 'MIT-TMI-DT' or self.model_name == 'MIT-TMI-RF':
             feature_weight_dict = dict(zip(self.vector.get_feature_names(), self.clf.feature_importances_.tolist()))
         # 按照重要性排序后的元祖列表
         sorted_feature_weight_dict = sorted(feature_weight_dict.items(), key=lambda kv: (-kv[1], kv[0]))
@@ -205,10 +203,11 @@ class TMI_Model(BaseModel):
 
         # Save line level result
         self.save_line_level_result()
+        self.save_buggy_density_file()
 
 
 class TMI_LR(TMI_Model):
-    model_name = 'TMI-LR'
+    model_name = 'MIT-TMI-LR'
 
     def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
@@ -218,7 +217,7 @@ class TMI_LR(TMI_Model):
 
 
 class TMI_SVM(TMI_Model):
-    model_name = 'TMI-SVM'
+    model_name = 'MIT-TMI-SVM'
 
     def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
@@ -228,7 +227,7 @@ class TMI_SVM(TMI_Model):
 
 
 class TMI_MNB(TMI_Model):
-    model_name = 'TMI-MNB'
+    model_name = 'MIT-TMI-MNB'
 
     def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
@@ -238,7 +237,7 @@ class TMI_MNB(TMI_Model):
 
 
 class TMI_DT(TMI_Model):
-    model_name = 'TMI-DT'
+    model_name = 'MIT-TMI-DT'
 
     def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
@@ -248,7 +247,7 @@ class TMI_DT(TMI_Model):
 
 
 class TMI_RF(TMI_Model):
-    model_name = 'TMI-RF'
+    model_name = 'MIT-TMI-RF'
 
     def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)

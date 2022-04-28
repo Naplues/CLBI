@@ -5,14 +5,12 @@ from src.models.base_model import BaseModel
 
 
 class NGram(BaseModel):
-    model_name = 'NGram'
+    model_name = 'NLP-NGram'
 
     def __init__(self,train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
         self.model_file_path = f'{self.result_path}model_files/'
         self.entropy_result_file = f'{self.result_path}entropy_result/{self.project_name}/{self.test_release}-result.csv'
-
-        self.rank_strategy = 3
 
         # remove_path(self.file_level_result_path)
 
@@ -26,6 +24,27 @@ class NGram(BaseModel):
 
         # Save file level result
         self.save_file_level_result()
+
+        # """
+        # NOTE: This below method is enabled in Dis 3
+        # """
+        # print(f"Prediction\t=>\t{self.test_release}")
+        # if USE_CACHE and os.path.exists(self.file_level_result_file):
+        #     return
+        #
+        # # 2. Convert text feature into numerical feature, classifier
+        # # Neither perform lowercase, stemming, nor lemmatization. Remove tokens that appear only once
+        # train_vtr = self.vector.fit_transform(self.train_text)
+        # test_vtr = self.vector.transform(self.test_text)
+        # # 3. Predict defective files, test_predictions
+        # self.clf.fit(train_vtr, self.train_label)
+        #
+        # self.test_pred_labels = self.clf.predict(test_vtr)
+        # # Obtain the prediction scores of each buggy lines.
+        # self.test_pred_scores = np.array([score[1] for score in self.clf.predict_proba(test_vtr)])
+        #
+        # # Save file level result
+        # self.save_file_level_result()
 
     def line_level_prediction(self):
 
@@ -58,7 +77,7 @@ class NGram(BaseModel):
 
 
 class NGram_C(NGram):
-    model_name = 'NGram-C'
+    model_name = 'NLP-NGram-C'
 
     def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)

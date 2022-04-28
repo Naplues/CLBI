@@ -41,13 +41,14 @@ class StaticAnalysisTool(BaseModel):
 
         file_buggy_dict = dict()
         lines = read_data_from_file(self.origin_file)
-        for line in lines:
+        for line in lines[1:]:
             split = line.strip().split(',')
             if len(split[1].strip()) == 0:
                 continue
             file_name = split[0]
             buggy_line_list = file_buggy_dict[file_name] if file_name in file_buggy_dict else []
             # 依次处理每个代码行信息,因为可能包含重复的代码行,所以需要进行去重操作,同时，如果同一行有两个优先级,需要保留最高优先级.
+            print(split)
             for v in split[1:]:
                 value_candidate = [int(v.split(':')[0]), int(v.split(':')[1])]  # [line_number, priority]
 
@@ -89,6 +90,27 @@ class StaticAnalysisTool(BaseModel):
         # Save file level result
         self.save_file_level_result()
 
+        """
+        NOTE: This below method is enabled in Dis 3
+        """
+        print(f"Prediction\t=>\t{self.test_release}")
+        if USE_CACHE and os.path.exists(self.file_level_result_file):
+            return
+
+        # 2. Convert text feature into numerical feature, classifier
+        # Neither perform lowercase, stemming, nor lemmatization. Remove tokens that appear only once
+        train_vtr = self.vector.fit_transform(self.train_text)
+        test_vtr = self.vector.transform(self.test_text)
+        # 3. Predict defective files, test_predictions
+        self.clf.fit(train_vtr, self.train_label)
+
+        self.test_pred_labels = self.clf.predict(test_vtr)
+        # Obtain the prediction scores of each buggy lines.
+        self.test_pred_scores = np.array([score[1] for score in self.clf.predict_proba(test_vtr)])
+
+        # Save file level result
+        self.save_file_level_result()
+
     def line_level_prediction(self):
         super(StaticAnalysisTool, self).line_level_prediction()
         if USE_CACHE and os.path.exists(self.line_level_result_file):
@@ -119,7 +141,7 @@ class StaticAnalysisTool(BaseModel):
 # ################################################ PMD ##########################################################
 
 class PMD(StaticAnalysisTool):
-    model_name = 'PMD'
+    model_name = 'SAT-PMD'
 
     def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
@@ -142,6 +164,8 @@ class PMD(StaticAnalysisTool):
         ]
         # file_buggy_dict[filename] = [[l1, p1], [l2, p2], ..., [ln, pn]]
         self.commit_version_code, self.commit_version_branch = self.load_version_info()
+        # !!!!!!! The below code can only run once to speed up the prediction process.
+        self.detect_detailed_result_of_bugs()
 
     def detect_detailed_result_of_bugs(self):
         # 检测某一个项目的具体版本
@@ -159,10 +183,40 @@ class PMD(StaticAnalysisTool):
         cmd_pmd = f'pmd -d {self.code_repository_path} -R {",".join(self.rule_list)} -f csv > {self.origin_file}'
         os.system(cmd_pmd)
 
+    def read_file_buggy_dict(self):
+        print(f'{"=" * 10} Parse bugs of {self.test_release} by PMD tool {"=" * 10}')
+
+        file_buggy_dict = dict()
+        lines = read_data_from_file(self.origin_file)
+        for line in lines[1:]:
+            split = line.split(',')
+            file_name = split[2].strip('"').replace("\\", "/").replace(self.code_repository_path, "")
+            line_number = split[4].strip('"')  # buggy lines
+            priority = int(split[3].strip('"'))  # buggy priority
+            value = [line_number, priority]
+            if file_name not in file_buggy_dict:
+                # 字典中没有该文件对应的键值对， 初始化该文件对应的buggy列表
+                file_buggy_dict[file_name] = [value]
+            else:
+                # 字典中已有该文件对应的键值对
+                # 取出该文件对应buggy行的信息,判断是否应该插入该buggy行的信息,
+                should_insert = True
+                for index in range(len(file_buggy_dict[file_name])):
+                    buggy_line = file_buggy_dict[file_name][index]
+                    # 发现该buggy行已经出现在字典值中,则不插入
+                    if value[0] == buggy_line[0]:
+                        should_insert = False
+                        # 如果新buggy的优先级高于已有相同行的优先级,则更新buggy行信息
+                        if value[1] > buggy_line[1]:
+                            file_buggy_dict[file_name][index] = value
+                        break
+                # 插入新的没有在字典值中出现的buggy行信息
+                file_buggy_dict[file_name].append(value) if should_insert else None
+        return file_buggy_dict
 
 # ################################################ CheckStyle ##########################################################
 class CheckStyle(StaticAnalysisTool):
-    model_name = 'CheckStyle'
+    model_name = 'SAT-CheckStyle'
 
     def __init__(self, train_release: str = '', test_release: str = ''):
         super().__init__(train_release, test_release)
