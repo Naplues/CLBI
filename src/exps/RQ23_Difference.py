@@ -31,7 +31,7 @@ def get_tp_buggy_lines(model, project, release):
     predicted_buggy_lines = model.predicted_buggy_lines
 
     model.oracle_line_dict = dict()
-    actual_buggy_lines = model.get_actual_buggy_lines()
+    _, actual_buggy_lines = model.get_oracle_lines()
 
     tp_buggy_lines = actual_buggy_lines.intersection(predicted_buggy_lines)
 

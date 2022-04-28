@@ -15,35 +15,34 @@ class BaseModel(object):
     model_name = 'BaseModel'  # need to be rewrite in subclass
 
     def __init__(self, train_release: str = '', test_release: str = '', test_result_path=''):
-        # Specific the actual name of each folder or file
+        # Specific the actual name of each folder or file if any.
+        self.result_path = test_result_path if test_result_path != '' else f'{root_path}Result/{self.model_name}/'
 
-        self.result_path = f'{root_path}Result/{self.model_name}/'
-        if test_result_path != '':
-            self.result_path = test_result_path
-        # folder path
+        # Folder path: file_result; line_result; buggy_density
         self.file_level_result_path = f'{self.result_path}file_result/'
         self.line_level_result_path = f'{self.result_path}line_result/'
         self.buggy_density_path = f'{self.result_path}buggy_density/'
-        # evaluation path
+
+        # Evaluation result path
         self.file_level_evaluation_file = f'{self.file_level_result_path}evaluation.csv'
         self.line_level_evaluation_file = f'{self.line_level_result_path}evaluation.csv'
-        self.time_file = f'{self.result_path}time.csv'
+        self.execution_time_file = f'{self.result_path}time.csv'
 
         # Model configuration info
         self.project_name = train_release.split('-')[0]
         np.random.seed(0)
         self.random_state = 0
-        self.iter_num = 100
         self.threshold_effort = 0.2
 
-        # Model training and test data
+        # Model training and test release information
         self.train_release = train_release
         self.test_release = test_release
+
         # File level classifier
         self.vector = CountVectorizer(lowercase=False, min_df=2)
         self.clf = LogisticRegression(random_state=0)
 
-        # file level data 文件级数据
+        # File level data reading
         self.train_text, self.train_text_lines, self.train_label, self.train_filename = \
             read_file_level_dataset(train_release)
         self.test_text, self.test_text_lines, self.test_labels, self.test_filename = \
@@ -65,19 +64,17 @@ class BaseModel(object):
         self.test_pred_density = dict()
 
         # Line level data 代码行级数据
-        self.oracle_line_dict = read_line_level_dataset(self.test_release)
-        self.actual_buggy_lines = self.get_actual_buggy_lines()  # set
+        self.oracle_line_dict, self.oracle_line_set = self.get_oracle_lines()
         self.predicted_buggy_lines = []
         self.predicted_buggy_score = []
         self.predicted_density = []
 
+        # 以项目中所有文件为基础计算的总代码行数和buggy代码行数
         self.num_total_lines = sum([len(lines) for lines in self.test_text_lines])
-        self.num_actual_buggy_lines = len(self.actual_buggy_lines)
+        self.num_actual_buggy_lines = len(self.oracle_line_set) # TP + FN
 
         # NOTE need to be written in the method of line_level_prediction of subclass
-        self.num_predict_buggy_lines = len(self.predicted_buggy_lines)
-
-        self.rank_strategy = 3  # 1, 2, 3,
+        self.num_predict_buggy_lines = len(self.predicted_buggy_lines) # TP + FP
 
     def init_file_path(self):
         # 创建文件夹目录
@@ -89,13 +86,12 @@ class BaseModel(object):
         make_path(f'{self.file_level_result_path}{self.project_name}/')
         make_path(f'{self.line_level_result_path}{self.project_name}/')
 
-    def get_actual_buggy_lines(self):
-        if len(self.oracle_line_dict.keys()) == 0:
-            self.oracle_line_dict = read_line_level_dataset(self.test_release)
-        oracle_line_list = set()
-        for file_name in self.oracle_line_dict:
-            oracle_line_list.update([f'{file_name}:{line}' for line in self.oracle_line_dict[file_name]])
-        return oracle_line_list
+    def get_oracle_lines(self):
+        # get buggy lines information
+        oracle_line_dict, oracle_line_list = read_line_level_dataset(self.test_release), set()
+        for file_name in oracle_line_dict:
+            oracle_line_list.update([f'{file_name}:{line}' for line in oracle_line_dict[file_name]])
+        return oracle_line_dict, oracle_line_list
 
     # ====================================================================================================
     # Buggy files and lines prediction
@@ -117,7 +113,7 @@ class BaseModel(object):
 
         self.test_pred_labels = self.clf.predict(test_vtr)
         # Obtain the prediction scores of each buggy lines.
-        if self.model_name == 'TMI-SVM':  # NOTE may be removed later
+        if self.model_name == 'MIT-TMI-SVM':  # NOTE may be removed later
             self.test_pred_scores = np.array([score for score in self.test_pred_labels])
         else:
             self.test_pred_scores = np.array([score[1] for score in self.clf.predict_proba(test_vtr)])
@@ -192,8 +188,8 @@ class BaseModel(object):
         Require: self.num_actual_buggy_lines
         """
         ################################# Loading file level prediction result #################################
+        self.load_file_level_result()
         total_lines_in_defective_files, buggy_lines_in_defective_files = 0, 0
-
         for index in range(len(self.test_pred_labels)):
             # Statistics in predicted defective files
             if self.test_pred_labels[index] == 1:
@@ -201,15 +197,15 @@ class BaseModel(object):
                 if self.test_labels[index] == 1:
                     buggy_lines_in_defective_files += len(self.oracle_line_dict[self.test_filename[index]])
 
-        # TODO The below assignment statements should be commented
+        # TODO The below assignment statements should be commented 被预测为defective文件中的总代码行数和buggy代码行数
         # self.num_total_lines = total_lines_in_defective_files  # TP + FP + TN + FN
         # self.num_actual_buggy_lines = buggy_lines_in_defective_files  # TP + FN
-        self.load_file_level_result()
-        ################################# Loading predicted lines, scores, and density #################################
+
+        ############################### Loading predicted lines, scores, and density ##############################
         self.load_line_level_result()
 
-        ######################### Classification performance Performance Performance Indicators ################################################
-        tp = len(self.actual_buggy_lines.intersection(self.predicted_buggy_lines))
+        ##################### Classification performance Performance Performance Indicators ################
+        tp = len(self.oracle_line_set.intersection(self.predicted_buggy_lines))
         fp = self.num_predict_buggy_lines - tp
         fn = self.num_actual_buggy_lines - tp
         tn = self.num_total_lines - tp - fp - fn
@@ -234,13 +230,7 @@ class BaseModel(object):
         RI = .0 if (x * n) == 0 else (y * N - x * n) / (x * n)
 
         ################################ Ranking performance Performance Performance Indicators ################################################
-        ifa, r_20 = .0, .0
-        if self.rank_strategy == 1:
-            ifa, r_20 = self.rank_strategy_1()  # Strategy 1
-        elif self.rank_strategy == 2:
-            ifa, r_20 = self.rank_strategy_2()  # Strategy 1
-        elif self.rank_strategy == 3:
-            ifa, r_20 = self.rank_strategy_3()  # Strategy 1
+        ifa, r_20 = self.rank_strategy()  # Strategy 1
 
         ################################ Bug hit ratio ################################################
         buggy_lines_dict = read_dict_from_file(f'{self.commit_buggy_path}/{self.test_release}_commit_buggy_lines.csv')
@@ -262,72 +252,7 @@ class BaseModel(object):
             file.write(f'{self.test_release},{prec},{recall},{far},{ce},{d2h},{mcc},{ifa},{r_20},{ER},{RI},{ratio}\n')
         return
 
-    def rank_strategy_1(self):
-        """
-        Checked OK.
-        Rank all predicted buggy lines according to the buggy scores.
-        Require: self.iter_num
-        Require: self.predicted_buggy_lines
-        Require: self.predicted_buggy_score
-        :return:
-        """
-        ifa_list, recall_20_list = [], []
-        max_len = 0
-        for it in range(self.iter_num):
-            np.random.seed(it)
-            predicted_buggy_score = [score + np.random.random() for score in self.predicted_buggy_score]
-            sorted_index = np.argsort(predicted_buggy_score)[::-1]
-            ranked_predicted_buggy_lines = np.array(self.predicted_buggy_lines)[sorted_index]
-
-            max_len = len(ranked_predicted_buggy_lines)
-            ifa, recall_20 = self.get_rank_performance(ranked_predicted_buggy_lines)
-            ifa_list.append(ifa)
-            recall_20_list.append(recall_20)
-
-        max_effort = int(self.num_total_lines * self.threshold_effort)
-        print(f'Predicted lines: {max_len}, Max effort: {max_effort}\n')
-        return np.mean(ifa_list), np.mean(recall_20_list)
-
-    def rank_strategy_2(self):
-        """
-        Checked OK.
-        Two-stage ranking strategy.
-        (1) Rank all predicted defective files according to the buggy score of each file;
-        (2) Rank all buggy lines according to the score of each line in each file.
-        Require: self.test_pred_scores
-        Require: self.predicted_buggy_lines
-        Require: self.predicted_buggy_score
-        Require: self.num_total_lines
-        :return: ifa, recall_20
-        """
-        ranked_predicted_buggy_lines = []
-        # A list of buggy score for each file in test set.
-        test_pred_score = self.test_pred_scores
-
-        # Indices of defective files in descending order according to the prediction density.
-        defective_file_index = [i for i in np.argsort(test_pred_score)[::-1] if self.test_pred_labels[i] == 1]
-
-        for i in range(len(defective_file_index)):
-            # The filename of predicted defective files in test set.
-            defective_filename = self.test_filename[defective_file_index[i]]
-
-            temp_lines, temp_scores = [], []
-            for index in range(len(self.predicted_buggy_lines)):
-                if self.predicted_buggy_lines[index].startswith(defective_filename):
-                    temp_lines.append(self.predicted_buggy_lines[index])
-                    temp_scores.append(self.predicted_buggy_score[index])
-
-            # Indices of buggy lines in descending order according to scores in each file.
-            sorted_index = np.argsort(temp_scores)[::-1]
-            ranked_predicted_buggy_lines.extend(list(np.array(temp_lines)[sorted_index]))
-
-        max_effort = int(self.num_total_lines * self.threshold_effort)
-        print(f'Predicted lines: {len(ranked_predicted_buggy_lines)}, Max effort: {max_effort}\n')
-
-        # Calculate the performance values of IFA and Recall@20%.
-        return self.get_rank_performance(ranked_predicted_buggy_lines)
-
-    def rank_strategy_3(self):
+    def rank_strategy(self):
         """
         Checked OK.
         Two-stage ranking strategy.
@@ -378,7 +303,7 @@ class BaseModel(object):
         count, ifa, recall_20, max_effort = 0, 0, 0, int(self.num_total_lines * self.threshold_effort)
 
         for line in ranked_predicted_buggy_lines[:max_effort]:
-            if line in self.actual_buggy_lines:
+            if line in self.oracle_line_set:
                 ifa = count if ifa == 0 else ifa
                 recall_20 += 1
             count += 1
