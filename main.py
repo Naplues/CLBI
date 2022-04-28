@@ -63,11 +63,11 @@ def run_default():
     # run_cross_release_predict(TMI_RF)
     # run_cross_release_predict(TMI_DT)
     # run_cross_release_predict(TMI_SVM)
-    # run_cross_release_predict(Glance_LR)
+    run_cross_release_predict(Glance_LR)
     # run_cross_release_predict(Glance_EA)
     # run_cross_release_predict(Glance_MD)
     # run_cross_release_predict(LineDP)
-    run_cross_release_predict(PMD,save_time=True)
+    # run_cross_release_predict(PMD,save_time=True)
     # run_cross_release_predict(CheckStyle, save_time=True)
     pass
 

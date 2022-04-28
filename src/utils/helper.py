@@ -16,9 +16,13 @@ simplefilter(action='ignore', category=FutureWarning)
 # r'/root/line-dp/CLDP_data/' r'C:/Users/test_gzq-712/Desktop/CLDP_data/' r'D:/CLDP_data/'
 # root_path = r'C:/Users/gzq-712/Desktop/CLDP_data/'
 root_path = r'D:/CLDP_data/'
-file_level_path = f'{root_path}Dataset/File-level/'
-line_level_path = f'{root_path}Dataset/Line-level/'
-result_path = f'{root_path}Result/'
+dataset_string = 'Dataset-TMP-R'
+result_string = 'Result-TMP-R'
+
+dataset_path = f'{root_path}/{dataset_string}/Bug-Info/'
+file_level_path = f'{root_path}{dataset_string}/File-level/'
+line_level_path = f'{root_path}{dataset_string}/Line-level/'
+result_path = f'{root_path}{result_string}'
 file_level_path_suffix = '_ground-truth-files_dataset.csv'
 line_level_path_suffix = '_defective_lines_dataset.csv'
 

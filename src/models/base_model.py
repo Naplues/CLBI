@@ -16,7 +16,7 @@ class BaseModel(object):
 
     def __init__(self, train_release: str = '', test_release: str = '', test_result_path=''):
         # Specific the actual name of each folder or file if any.
-        self.result_path = test_result_path if test_result_path != '' else f'{root_path}Result/{self.model_name}/'
+        self.result_path = test_result_path if test_result_path != '' else f'{result_path}/{self.model_name}/'
 
         # Folder path: file_result; line_result; buggy_density
         self.file_level_result_path = f'{self.result_path}file_result/'
@@ -53,7 +53,7 @@ class BaseModel(object):
         self.file_level_result_file = f'{self.file_level_result_path}{self.project_name}/{self.test_release}-result.csv'
         self.line_level_result_file = f'{self.line_level_result_path}{self.project_name}/{self.test_release}-result.csv'
         self.buggy_density_file = f'{self.buggy_density_path}{self.test_release}-density.csv'
-        self.commit_buggy_path = f'{root_path}/Dataset/Bug-Info/{self.test_release.split("-")[0]}'
+        self.commit_buggy_path = f'{dataset_path}{self.test_release.split("-")[0]}'
 
         # 创建文件存储目录
         self.init_file_path()
@@ -71,10 +71,10 @@ class BaseModel(object):
 
         # 以项目中所有文件为基础计算的总代码行数和buggy代码行数
         self.num_total_lines = sum([len(lines) for lines in self.test_text_lines])
-        self.num_actual_buggy_lines = len(self.oracle_line_set) # TP + FN
+        self.num_actual_buggy_lines = len(self.oracle_line_set)  # TP + FN
 
         # NOTE need to be written in the method of line_level_prediction of subclass
-        self.num_predict_buggy_lines = len(self.predicted_buggy_lines) # TP + FP
+        self.num_predict_buggy_lines = len(self.predicted_buggy_lines)  # TP + FP
 
     def init_file_path(self):
         # 创建文件夹目录
