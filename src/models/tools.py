@@ -149,8 +149,8 @@ class PMD(StaticAnalysisTool):
         if train_release == '' and test_release == '':
             return
 
-        self.origin_details_path = f'{result_path}{self.model_name}/origin/detailed_result/{self.project_name}/'
-        self.origin_final_path = f'{result_path}{self.model_name}/origin/final_result/{self.project_name}/'
+        self.origin_details_path = f'{result_path}/{self.model_name}/origin/detailed_result/{self.project_name}/'
+        self.origin_final_path = f'{result_path}/{self.model_name}/origin/final_result/{self.project_name}/'
         self.origin_file = f'{self.origin_final_path}{self.test_release}.csv'
 
         make_path(self.origin_details_path)
