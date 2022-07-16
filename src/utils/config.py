@@ -27,16 +27,7 @@ USE_CACHE = False
 # --------------------------------
 # 按照时间排好顺序的releases
 PROJECT_RELEASE_LIST = [
-    # 'activemq-5.0.0', 'activemq-5.1.0', 'activemq-5.2.0', 'activemq-5.3.0', 'activemq-5.8.0',
-    # 'camel-1.4.0', 'camel-2.9.0', 'camel-2.10.0', 'camel-2.11.0',
-    # 'derby-10.2.1.6', 'derby-10.3.1.4', 'derby-10.5.1.1',
-    # 'groovy-1_5_7', 'groovy-1_6_BETA_1', 'groovy-1_6_BETA_2',
-    # 'hbase-0.94.0', 'hbase-0.95.0', 'hbase-0.95.2',
-    # 'hive-0.9.0', 'hive-0.10.0', 'hive-0.12.0',
-    # 'jruby-1.1', 'jruby-1.4.0', 'jruby-1.5.0', 'jruby-1.7.0.preview1',
-    # 'lucene-2.3.0', 'lucene-2.9.0', 'lucene-3.0.0', 'lucene-3.1',
-    # 'wicket-1.3.0-beta2', 'wicket-1.3.0-incubating-beta-1', 'wicket-1.5.3',
-    #
+
     'ambari-1.2.0', 'ambari-2.1.0', 'ambari-2.2.0', 'ambari-2.4.0', 'ambari-2.5.0', 'ambari-2.6.0', 'ambari-2.7.0',
     'amq-5.0.0', 'amq-5.1.0', 'amq-5.2.0', 'amq-5.4.0', 'amq-5.5.0', 'amq-5.6.0', 'amq-5.7.0', 'amq-5.8.0',
     'amq-5.9.0', 'amq-5.10.0', 'amq-5.11.0', 'amq-5.12.0', 'amq-5.14.0', 'amq-5.15.0',
@@ -47,7 +38,7 @@ PROJECT_RELEASE_LIST = [
     'flink-1.4.0', 'flink-1.6.0',
     'groovy-1.0', 'groovy-1.5.5', 'groovy-1.6.0', 'groovy-1.7.3', 'groovy-1.7.6', 'groovy-1.8.1', 'groovy-1.8.7',
     'groovy-2.1.0', 'groovy-2.1.6', 'groovy-2.4.4', 'groovy-2.4.6', 'groovy-2.4.8', 'groovy-2.5.0',
-    # 'groovy-2.5.5',
+    'groovy-2.5.5',
     'hbase-0.94.1', 'hbase-0.94.5', 'hbase-0.98.0', 'hbase-0.98.5', 'hbase-0.98.11',
     'hive-0.14.0', 'hive-1.2.0', 'hive-2.0.0', 'hive-2.1.0',
     'ignite-1.0.0', 'ignite-1.4.0', 'ignite-1.6.0',
