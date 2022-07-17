@@ -21,8 +21,8 @@ from lime.lime_text import LimeTextExplainer
 class LineDP(BaseModel):
     model_name = 'MIT-LineDP'
 
-    def __init__(self, train_release: str = '', test_release: str = ''):
-        super().__init__(train_release, test_release)
+    def __init__(self, train_release: str = '', test_release: str = '', is_realistic=False):
+        super().__init__(train_release, test_release, is_realistic)
 
         # File level classifier
         self.vector = CountVectorizer(lowercase=False, min_df=2)
@@ -110,8 +110,8 @@ class LineDP(BaseModel):
 class TMI_Model(BaseModel):
     model_name = 'MIT-TMI-Model'
 
-    def __init__(self, train_release: str = '', test_release: str = ''):
-        super().__init__(train_release, test_release)
+    def __init__(self, train_release: str = '', test_release: str = '', is_realistic=False):
+        super().__init__(train_release, test_release, is_realistic)
 
         # File level classifier
         self.clf = None
@@ -209,8 +209,8 @@ class TMI_Model(BaseModel):
 class TMI_LR(TMI_Model):
     model_name = 'MIT-TMI-LR'
 
-    def __init__(self, train_release: str = '', test_release: str = ''):
-        super().__init__(train_release, test_release)
+    def __init__(self, train_release: str = '', test_release: str = '', is_realistic=False):
+        super().__init__(train_release, test_release, is_realistic)
 
         # File level classifier
         self.clf = LogisticRegression(random_state=self.random_state)
@@ -219,8 +219,8 @@ class TMI_LR(TMI_Model):
 class TMI_SVM(TMI_Model):
     model_name = 'MIT-TMI-SVM'
 
-    def __init__(self, train_release: str = '', test_release: str = ''):
-        super().__init__(train_release, test_release)
+    def __init__(self, train_release: str = '', test_release: str = '', is_realistic=False):
+        super().__init__(train_release, test_release, is_realistic)
 
         # File level classifier
         self.clf = LinearSVC(random_state=self.random_state)
@@ -229,8 +229,8 @@ class TMI_SVM(TMI_Model):
 class TMI_MNB(TMI_Model):
     model_name = 'MIT-TMI-MNB'
 
-    def __init__(self, train_release: str = '', test_release: str = ''):
-        super().__init__(train_release, test_release)
+    def __init__(self, train_release: str = '', test_release: str = '', is_realistic=False):
+        super().__init__(train_release, test_release, is_realistic)
 
         # File level classifier
         self.clf = MultinomialNB()
@@ -239,8 +239,8 @@ class TMI_MNB(TMI_Model):
 class TMI_DT(TMI_Model):
     model_name = 'MIT-TMI-DT'
 
-    def __init__(self, train_release: str = '', test_release: str = ''):
-        super().__init__(train_release, test_release)
+    def __init__(self, train_release: str = '', test_release: str = '', is_realistic=False):
+        super().__init__(train_release, test_release, is_realistic)
 
         # File level classifier
         self.clf = DecisionTreeClassifier(random_state=self.random_state)
@@ -249,8 +249,8 @@ class TMI_DT(TMI_Model):
 class TMI_RF(TMI_Model):
     model_name = 'MIT-TMI-RF'
 
-    def __init__(self, train_release: str = '', test_release: str = ''):
-        super().__init__(train_release, test_release)
+    def __init__(self, train_release: str = '', test_release: str = '', is_realistic=False):
+        super().__init__(train_release, test_release, is_realistic)
 
         # File level classifier
         self.clf = RandomForestClassifier(random_state=self.random_state)

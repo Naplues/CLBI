@@ -14,7 +14,7 @@ from sklearn.linear_model import LogisticRegression
 class BaseModel(object):
     model_name = 'BaseModel'  # need to be rewrite in subclass
 
-    def __init__(self, train_release: str = '', test_release: str = '', test_result_path=''):
+    def __init__(self, train_release: str = '', test_release: str = '', test_result_path='', is_realistic=False):
         # Specific the actual name of each folder or file if any.
         self.result_path = test_result_path if test_result_path != '' else f'{result_path}/{self.model_name}/'
 
@@ -43,10 +43,15 @@ class BaseModel(object):
         self.clf = LogisticRegression(random_state=0)
 
         # File level data reading
-        self.train_text, self.train_text_lines, self.train_label, self.train_filename = \
-            read_file_level_dataset(train_release)
-        self.test_text, self.test_text_lines, self.test_labels, self.test_filename = \
-            read_file_level_dataset(test_release)
+        # Only use data available now as training data
+        if is_realistic:
+            self.train_text, self.train_text_lines, self.train_label, self.train_filename = read_file_level_dataset(
+                train_release, file_path=f'{root_path}Dataset-TMP/File-level/')
+        else:
+            self.train_text, self.train_text_lines, self.train_label, self.train_filename = read_file_level_dataset(
+                train_release)
+        self.test_text, self.test_text_lines, self.test_labels, self.test_filename = read_file_level_dataset(
+            test_release)
 
         # 明确存储实验结果的每个文件夹及文件路径
         # result file path
