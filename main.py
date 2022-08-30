@@ -21,7 +21,7 @@ MODEL_DICT = {'MIT-TMI-LR': TMI_LR, 'MIT-TMI-SVM': TMI_SVM, 'MIT-TMI-MNB': TMI_M
 
 
 # ========================= Run RQ1 experiments =================================
-def  run_cross_release_predict(prediction_model, save_time=False):
+def run_cross_release_predict(prediction_model, save_time=False):
     # time
     release_name, build_time_list, pred_time_list = [], [], []
     for project, releases in get_project_releases_dict().items():
@@ -30,9 +30,10 @@ def  run_cross_release_predict(prediction_model, save_time=False):
             print(f'========== {prediction_model.model_name} CR PREDICTION for {releases[i + 1]} ================'[:60])
             # ####### Build time #######
             t_start = time.time()
-            model = prediction_model(releases[i], releases[i + 1])
+            model = prediction_model(releases[i], releases[i + 1], is_realistic=True)
             t_end = time.time()
             build_time_list.append(t_end - t_start)
+
 
             # ####### Pred time #######
             t_start = time.time()

@@ -13,11 +13,10 @@ from src.utils.config import PROJECT_RELEASE_LIST
 simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
-# r'/root/line-dp/CLDP_data/' r'C:/Users/test_gzq-712/Desktop/CLDP_data/' r'D:/CLDP_data/'
-# root_path = r'C:/Users/gzq-712/Desktop/CLDP_data/'
+# r'/root/line-dp/CLDP_data/' r'D:/CLDP_data/'
 root_path = r'D:/CLDP_data/'
-dataset_string = 'Dataset-R'
-result_string = 'Result-R'
+dataset_string = 'Dataset'
+result_string = 'Result-TMP'
 
 dataset_path = f'{root_path}/{dataset_string}/Bug-Info/'
 file_level_path = f'{root_path}{dataset_string}/File-level/'
