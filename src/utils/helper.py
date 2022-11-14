@@ -14,9 +14,9 @@ simplefilter(action='ignore', category=FutureWarning)
 
 # 全局变量设置
 # r'/root/line-dp/CLDP_data/' r'D:/CLDP_data/'
-root_path = r'D:/CLDP_data/'
+root_path = r'D:/CLDP_data_D4J/'
 dataset_string = 'Dataset'
-result_string = 'Result-TMP'
+result_string = 'Result'
 
 dataset_path = f'{root_path}/{dataset_string}/Bug-Info/'
 file_level_path = f'{root_path}{dataset_string}/File-level/'
@@ -79,7 +79,7 @@ def read_file_level_dataset(release='', file_path=file_level_path):
     with open(path, 'r', encoding='utf-8', errors='ignore') as file:
         lines = file.readlines()
         # 文件信息索引列表, 每个文件名不一样该语句才没有错误 TODO line.index(line)
-        src_file_indices = [lines.index(line) for line in lines if r',true,"' in line or r',false,"' in line]
+        src_file_indices = [lines.index(line) for line in lines if r'.java,true,"' in line or r'.java,false,"' in line]
         # 源文件路径,需要时返回 OK
         src_files = [lines[index].split(',')[0] for index in src_file_indices]
         # 缺陷标记
@@ -230,13 +230,37 @@ def remove_path(path):
             shutil.rmtree(file_path)
 
 
+# def dataset_statistics():
+#     """
+#     数据集统计信息
+#     :return:
+#     """
+#     print('release name, #files, #buggy files, ratio, #LOC, #buggy LOC, ratio, #tokens')
+#     for proj in PROJECT_RELEASE_LIST:
+#         texts, texts_lines, numeric_labels, src_files = read_file_level_dataset(proj)
+#
+#         file_num = len(texts)
+#         bug_num = len([l for l in numeric_labels if l == 1])
+#         file_ratio = bug_num / file_num
+#
+#         loc = sum([len([line for line in text if not line == ""]) for text in texts_lines])
+#         bug_lines = sum([len(v) for k, v in read_line_level_dataset(proj).items()])
+#         line_ratio = bug_lines / loc
+#
+#         res = (proj, file_num, bug_num, file_ratio, loc, bug_lines, line_ratio)
+#         print("%s, %d, %d, %f, %d, %d, %f" % res)
+
+
 def dataset_statistics():
     """
     数据集统计信息
     :return:
     """
-    print('release name, #files, #buggy files, ratio, #LOC, #buggy LOC, ratio, #tokens')
-    for proj in PROJECT_RELEASE_LIST:
+    projects = ['ant-ivy', 'commons-compress', 'commons-configuration', 'commons-lang', 'commons-math',
+                'commons-net', 'commons-vfs', 'giraph', 'parquet-mr']
+    print('project name, #files, #buggy files, ratio, #LOC, #buggy LOC, ratio, #tokens')
+
+    for proj in projects:
         texts, texts_lines, numeric_labels, src_files = read_file_level_dataset(proj)
 
         file_num = len(texts)
