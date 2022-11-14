@@ -19,9 +19,9 @@ def call_number(statement):
 class Glance(BaseModel):
     model_name = 'Glance'
 
-    def __init__(self, train_release='', test_release='', line_threshold=0.5, test_result_path=''):
+    def __init__(self, train_release='', test_release='', line_threshold=0.5, test_result_path='', is_realistic=False):
 
-        super().__init__(train_release, test_release, test_result_path)
+        super().__init__(train_release, test_release, test_result_path, is_realistic)
         # Line level classification threshold
         self.line_threshold = line_threshold
         self.tokenizer = self.vector.build_tokenizer()
@@ -117,12 +117,13 @@ class Glance_MD(Glance):
     """
     model_name = 'BASE-Glance-MD'
 
-    def __init__(self, train_release='', test_release='', line_threshold=0.5, file_threshold=0.5, test=False):
+    def __init__(self, train_release='', test_release='', line_threshold=0.5, file_threshold=0.5, test=False,
+                 is_realistic=False):
         test_result_path = ''
         if test:
             self.model_name = f'Glance-MD-{str(int(file_threshold * 100))}-{str(int(line_threshold * 100))}'
             test_result_path = f'{root_path}Result/Dis1/{self.model_name}/'
-        super().__init__(train_release, test_release, line_threshold, test_result_path)
+        super().__init__(train_release, test_release, line_threshold, test_result_path, is_realistic)
         # File level classification threshold for unsupervised methods
         self.file_threshold = file_threshold
 
@@ -168,12 +169,13 @@ class Glance_EA(Glance):
     """
     model_name = 'BASE-Glance-EA'
 
-    def __init__(self, train_release='', test_release='', line_threshold=0.5, file_threshold=0.5, test=False):
+    def __init__(self, train_release='', test_release='', line_threshold=0.5, file_threshold=0.5, test=False,
+                 is_realistic=False):
         test_result_path = ''
         if test:
             self.model_name = f'Glance-EA-{str(int(file_threshold * 100))}-{str(int(line_threshold * 100))}'
             test_result_path = f'{root_path}Result/Dis1/{self.model_name}/'
-        super().__init__(train_release, test_release, line_threshold, test_result_path)
+        super().__init__(train_release, test_release, line_threshold, test_result_path, is_realistic)
         # File level classification threshold for unsupervised methods
         self.file_threshold = file_threshold
 
@@ -281,12 +283,12 @@ class Glance_LR(Glance):
     """
     model_name = 'BASE-Glance-LR'
 
-    def __init__(self, train_release='', test_release='', line_threshold=0.5, test=False):
+    def __init__(self, train_release='', test_release='', line_threshold=0.5, test=False, is_realistic=False):
         test_result_path = ''
         if test:
             self.model_name = f'Glance-LR-{str(int(line_threshold * 100))}'
             test_result_path = f'{root_path}Result/Dis1/{self.model_name}/'
-        super().__init__(train_release, test_release, line_threshold, test_result_path)
+        super().__init__(train_release, test_release, line_threshold, test_result_path, is_realistic)
 
     def file_level_prediction(self):
         """

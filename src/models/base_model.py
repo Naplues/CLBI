@@ -14,9 +14,9 @@ from sklearn.linear_model import LogisticRegression
 class BaseModel(object):
     model_name = 'BaseModel'  # need to be rewrite in subclass
 
-    def __init__(self, train_release: str = '', test_release: str = '', test_result_path=''):
+    def __init__(self, train_release: str = '', test_release: str = '', test_result_path='', is_realistic=False):
         # Specific the actual name of each folder or file if any.
-        self.result_path = test_result_path if test_result_path != '' else f'{root_path}Result/{self.model_name}/'
+        self.result_path = test_result_path if test_result_path != '' else f'{result_path}/{self.model_name}/'
 
         # Folder path: file_result; line_result; buggy_density
         self.file_level_result_path = f'{self.result_path}file_result/'
@@ -43,17 +43,22 @@ class BaseModel(object):
         self.clf = LogisticRegression(random_state=0)
 
         # File level data reading
-        self.train_text, self.train_text_lines, self.train_label, self.train_filename = \
-            read_file_level_dataset(train_release)
-        self.test_text, self.test_text_lines, self.test_labels, self.test_filename = \
-            read_file_level_dataset(test_release)
+        # Only use data available now as training data
+        if is_realistic:
+            self.train_text, self.train_text_lines, self.train_label, self.train_filename = read_file_level_dataset(
+                train_release, file_path=f'{root_path}Dataset-TMP/File-level/')
+        else:
+            self.train_text, self.train_text_lines, self.train_label, self.train_filename = read_file_level_dataset(
+                train_release)
+        self.test_text, self.test_text_lines, self.test_labels, self.test_filename = read_file_level_dataset(
+            test_release)
 
         # 明确存储实验结果的每个文件夹及文件路径
         # result file path
         self.file_level_result_file = f'{self.file_level_result_path}{self.project_name}/{self.test_release}-result.csv'
         self.line_level_result_file = f'{self.line_level_result_path}{self.project_name}/{self.test_release}-result.csv'
         self.buggy_density_file = f'{self.buggy_density_path}{self.test_release}-density.csv'
-        self.commit_buggy_path = f'{root_path}/Dataset/Bug-Info/{self.test_release.split("-")[0]}'
+        self.commit_buggy_path = f'{dataset_path}{self.test_release.split("-")[0]}'
 
         # 创建文件存储目录
         self.init_file_path()
@@ -71,10 +76,10 @@ class BaseModel(object):
 
         # 以项目中所有文件为基础计算的总代码行数和buggy代码行数
         self.num_total_lines = sum([len(lines) for lines in self.test_text_lines])
-        self.num_actual_buggy_lines = len(self.oracle_line_set) # TP + FN
+        self.num_actual_buggy_lines = len(self.oracle_line_set)  # TP + FN
 
         # NOTE need to be written in the method of line_level_prediction of subclass
-        self.num_predict_buggy_lines = len(self.predicted_buggy_lines) # TP + FP
+        self.num_predict_buggy_lines = len(self.predicted_buggy_lines)  # TP + FP
 
     def init_file_path(self):
         # 创建文件夹目录
@@ -233,8 +238,8 @@ class BaseModel(object):
         ifa, r_20 = self.rank_strategy()  # Strategy 1
 
         ################################ Bug hit ratio ################################################
-        buggy_lines_dict = read_dict_from_file(f'{self.commit_buggy_path}/{self.test_release}_commit_buggy_lines.csv')
-        # buggy_lines_dict = {}  # = read_dict_from_file(f'{self.commit_buggy_path}/{self.test_release}_commit_buggy_lines.csv')
+        # buggy_lines_dict = read_dict_from_file(f'{self.commit_buggy_path}/{self.test_release}_commit_buggy_lines.csv')
+        buggy_lines_dict = {}  # = read_dict_from_file(f'{self.commit_buggy_path}/{self.test_release}_commit_buggy_lines.csv')
         total_bugs = len(buggy_lines_dict.keys())
         hit_bugs = set()
         for line in self.predicted_buggy_lines:

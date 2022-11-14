@@ -1,0 +1,10 @@
+LineDP,Glance-MD,Glance-EA,Glance-LR
+ant-ivy,76.625,4892.0,11.0,48.375
+commons-compress,105.5,5803.0,221.0,286.625
+commons-configuration,115.75,7902.0,120.0,77.375
+commons-lang,847.75,13026.0,2617.0,570.5
+commons-math,503.375,37423.0,1027.0,593.25
+commons-net,60.0,2881.0,445.0,119.125
+commons-vfs,127.875,4208.0,181.0,131.875
+giraph,226.125,6805.0,44.0,155.0
+parquet-mr,1974.25,7352.0,105.0,435.5
